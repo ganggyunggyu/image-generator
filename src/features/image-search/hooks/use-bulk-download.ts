@@ -5,6 +5,7 @@ import {
   bulkDownloadLoadingAtom,
   downloadProgressAtom,
   searchErrorAtom,
+  searchQueryAtom,
 } from '@/entities/image';
 
 export const useBulkDownload = () => {
@@ -13,6 +14,7 @@ export const useBulkDownload = () => {
   const [bulkDownloadLoading, setBulkDownloadLoading] = useAtom(bulkDownloadLoadingAtom);
   const [downloadProgress, setDownloadProgress] = useAtom(downloadProgressAtom);
   const [, setError] = useAtom(searchErrorAtom);
+  const [query] = useAtom(searchQueryAtom);
 
   const toggleImageSelection = (index: number) => {
     const newSelected = new Set(selectedImages);
@@ -70,6 +72,7 @@ export const useBulkDownload = () => {
         },
         body: JSON.stringify({
           images: selectedResults,
+          keyword: query,
         }),
       });
 
