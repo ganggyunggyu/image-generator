@@ -11,6 +11,7 @@ interface BulkDownloadRequest {
     height?: number;
   }>;
   effectOptions?: DownloadOptions;
+  keyword?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -158,8 +159,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const sanitizedKeyword = body.keyword
+      ? body.keyword.replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '').replace(/\s+/g, '_').substring(0, 30)
+      : '';
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-    const zipFileName = `images_${timestamp}.zip`;
+    const zipFileName = sanitizedKeyword
+      ? `${sanitizedKeyword}_${timestamp}.zip`
+      : `images_${timestamp}.zip`;
 
     console.log(`ZIP 생성 완료: ${zipBuffer.length} bytes`);
 
