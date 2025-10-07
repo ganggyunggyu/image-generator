@@ -147,6 +147,7 @@ export const ImageSearchWithState: React.FC = () => {
         const requestBody = {
           processedImages,
           effectOptions: options,
+          keyword: query,
         };
 
         const response = await fetch('/api/image/bulk-download-processed', {
@@ -185,6 +186,7 @@ export const ImageSearchWithState: React.FC = () => {
 
         const requestBody = {
           images: selectedResults,
+          keyword: query,
         };
 
         const response = await fetch('/api/image/bulk-download', {
