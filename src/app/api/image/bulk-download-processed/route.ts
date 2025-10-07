@@ -12,6 +12,7 @@ interface ProcessedBulkDownloadRequest {
     processedDataUrl?: string; // 효과 적용된 데이터 URL
   }>;
   effectOptions: DownloadOptions;
+  keyword?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -127,8 +128,14 @@ export async function POST(request: NextRequest) {
 
     console.log(`ZIP 파일 생성 완료: ${zipBuffer.length} bytes, 성공: ${successCount}, 실패: ${failedCount}`);
 
+    const sanitizedKeyword = body.keyword
+      ? body.keyword.replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '').replace(/\s+/g, '_').substring(0, 30)
+      : '';
+
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-    const zipFileName = `images_${frame.id}_${filter.id}_${timestamp}.zip`;
+    const zipFileName = sanitizedKeyword
+      ? `${sanitizedKeyword}_${frame.id}_${filter.id}_${timestamp}.zip`
+      : `images_${frame.id}_${filter.id}_${timestamp}.zip`;
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
