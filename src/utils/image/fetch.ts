@@ -1,15 +1,20 @@
-import sharp from 'sharp';
-
-export const clamp = (value: number, min: number, max: number): number => {
-  return Math.min(Math.max(value, min), max);
-};
-
 export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3): Promise<Buffer> => {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
       console.log(`이미지 fetch 시도 ${attempt + 1}/${retryCount}:`, imageUrl);
+
+      // URL 인코딩: 한글/특수문자 처리
+      let encodedUrl = imageUrl;
+      try {
+        const urlObj = new URL(imageUrl);
+        // 이미 인코딩된 URL은 그대로 사용
+        encodedUrl = imageUrl;
+      } catch {
+        // URL 파싱 실패 시 인코딩 시도
+        encodedUrl = encodeURI(imageUrl);
+      }
 
       // User-Agent를 더 다양하게 랜덤 선택
       const userAgents = [
@@ -19,12 +24,12 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
       ];
 
-      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)] || userAgents[0];
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const response = await fetch(imageUrl, {
+      const response = await fetch(encodedUrl, {
         method: 'GET',
         headers: {
           'User-Agent': randomUserAgent,
@@ -103,7 +108,6 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
   throw new Error(`이미지 로드 실패 (${retryCount}회 시도): ${lastError?.message}`);
 };
 
-// 이미지 매직 넘버로 실제 이미지 파일인지 확인
 const isValidImageBuffer = (buffer: Buffer): boolean => {
   if (buffer.length < 8) return false;
 
@@ -127,117 +131,4 @@ const isValidImageBuffer = (buffer: Buffer): boolean => {
       (buffer[0] === 0x4D && buffer[1] === 0x4D && buffer[2] === 0x00 && buffer[3] === 0x2A)) return true;
 
   return false;
-};
-
-export interface ConvertToPngOptions {
-  width?: number;
-  height?: number;
-  maintainAspectRatio?: boolean;
-  compressionLevel?: number;
-}
-
-export const convertToPng = async (
-  imageBuffer: Buffer,
-  options: ConvertToPngOptions = {}
-): Promise<Buffer> => {
-  try {
-    console.log('PNG 변환 시작');
-
-    const {
-      width,
-      height,
-      maintainAspectRatio = true,
-      compressionLevel = 1,
-    } = options;
-
-    let sharpImage = sharp(imageBuffer);
-
-    const metadata = await sharpImage.metadata();
-    console.log('원본 이미지 정보:', {
-      format: metadata.format,
-      width: metadata.width,
-      height: metadata.height,
-      channels: metadata.channels,
-    });
-
-    if (width || height) {
-      const resizeOptions: sharp.ResizeOptions = {
-        fit: maintainAspectRatio ? 'inside' : 'fill',
-        withoutEnlargement: true,
-      };
-
-      if (width && height) {
-        sharpImage = sharpImage.resize(
-          clamp(width, 1, 4000),
-          clamp(height, 1, 4000),
-          resizeOptions
-        );
-      } else if (width) {
-        sharpImage = sharpImage.resize(clamp(width, 1, 4000), undefined, resizeOptions);
-      } else if (height) {
-        sharpImage = sharpImage.resize(undefined, clamp(height, 1, 4000), resizeOptions);
-      }
-    }
-
-    const pngBuffer = await sharpImage
-      .png({
-        compressionLevel: clamp(compressionLevel, 0, 9),
-        adaptiveFiltering: true,
-        palette: false,
-        quality: 100,
-      })
-      .toBuffer();
-
-    console.log(`PNG 변환 성공: ${pngBuffer.length} bytes`);
-    return pngBuffer;
-  } catch (error) {
-    console.error('PNG 변환 실패:', error);
-
-    if (error instanceof Error) {
-      throw new Error(`이미지 변환 실패: ${error.message}`);
-    }
-
-    throw new Error('알 수 없는 이미지 변환 오류가 발생했습니다');
-  }
-};
-
-export const getImageMetadata = async (imageBuffer: Buffer) => {
-  try {
-    const metadata = await sharp(imageBuffer).metadata();
-    return {
-      format: metadata.format,
-      width: metadata.width,
-      height: metadata.height,
-      channels: metadata.channels,
-      density: metadata.density,
-      hasAlpha: metadata.hasAlpha,
-      size: imageBuffer.length,
-    };
-  } catch (error) {
-    console.error('메타데이터 추출 실패:', error);
-    throw new Error('이미지 메타데이터를 읽을 수 없습니다');
-  }
-};
-
-export const validateImageUrl = (url: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    const allowedProtocols = ['http:', 'https:'];
-
-    if (!allowedProtocols.includes(urlObj.protocol)) {
-      return false;
-    }
-
-    const pathname = urlObj.pathname.toLowerCase();
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg'];
-
-    const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext));
-    const hasImageParam = urlObj.searchParams.toString().includes('image') ||
-                         urlObj.searchParams.toString().includes('photo') ||
-                         urlObj.searchParams.toString().includes('pic');
-
-    return hasImageExtension || hasImageParam || pathname.includes('image');
-  } catch {
-    return false;
-  }
 };

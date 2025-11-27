@@ -1,0 +1,38 @@
+import { cn } from '@/shared/lib';
+import { ImageCard } from '@/shared/ui';
+import { ImageResult } from '@/shared/api/types';
+
+interface ResultsGridProps {
+  results: ImageResult[];
+  selectedImages: Set<number>;
+  onToggleSelect: (index: number) => void;
+  onImageClick: (imageUrl: string, title: string) => void;
+  onDownload: (imageUrl: string, title: string) => void;
+}
+
+export const ResultsGrid = ({
+  results,
+  selectedImages,
+  onToggleSelect,
+  onImageClick,
+  onDownload,
+}: ResultsGridProps) => {
+  return (
+    <div className={cn(
+      'grid gap-6',
+      'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+    )}>
+      {results.map((result, index) => (
+        <ImageCard
+          key={index}
+          image={result}
+          index={index}
+          isSelected={selectedImages.has(index)}
+          onToggleSelect={onToggleSelect}
+          onImageClick={onImageClick}
+          onDownload={onDownload}
+        />
+      ))}
+    </div>
+  );
+};
