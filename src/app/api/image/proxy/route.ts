@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchImageBuffer, convertToPng, validateImageUrl } from '@/utils/image';
+import { fetchImageBuffer, convertToWebp, validateImageUrl } from '@/utils/image';
 
 export async function GET(request: NextRequest) {
+  let decodedImageUrl = '';
+
   try {
     const { searchParams } = new URL(request.url);
     const imageUrl = searchParams.get('src');
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const decodedImageUrl = decodeURIComponent(imageUrl);
+    decodedImageUrl = decodeURIComponent(imageUrl);
 
     if (!validateImageUrl(decodedImageUrl)) {
       return NextResponse.json(
@@ -67,30 +69,29 @@ export async function GET(request: NextRequest) {
 
     const imageBuffer = await fetchImageBuffer(decodedImageUrl);
 
-    const pngBuffer = await convertToPng(imageBuffer, {
+    const webpBuffer = await convertToWebp(imageBuffer, {
       width,
       height,
-      maintainAspectRatio: true,
-      compressionLevel: 1,
+      quality: 90,
     });
 
     const cacheSeconds = parseInt(process.env.IMAGE_CACHE_SECONDS || '3600', 10);
 
     const headers = new Headers({
-      'Content-Type': 'image/png',
-      'Content-Length': pngBuffer.length.toString(),
+      'Content-Type': 'image/webp',
+      'Content-Length': webpBuffer.length.toString(),
       'Cache-Control': `public, max-age=${cacheSeconds}, immutable`,
       'X-Original-URL': decodedImageUrl,
-      'X-Content-Size': pngBuffer.length.toString(),
+      'X-Content-Size': webpBuffer.length.toString(),
     });
 
     if (width || height) {
       headers.set('X-Resized', `${width || 'auto'}x${height || 'auto'}`);
     }
 
-    console.log(`PNG 프록시 성공: ${pngBuffer.length} bytes`);
+    console.log(`WebP 프록시 성공: ${webpBuffer.length} bytes`);
 
-    return new NextResponse(pngBuffer, {
+    return new NextResponse(webpBuffer as BodyInit, {
       status: 200,
       headers,
     });

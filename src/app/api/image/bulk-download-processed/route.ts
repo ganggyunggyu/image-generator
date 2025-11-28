@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
+import { convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
 
 interface ProcessedBulkDownloadRequest {
@@ -8,7 +9,7 @@ interface ProcessedBulkDownloadRequest {
     title: string;
     width?: number;
     height?: number;
-    pngUrl: string;
+    imageUrl: string;
     processedDataUrl?: string; // 효과 적용된 데이터 URL
   }>;
   effectOptions: DownloadOptions;
@@ -63,9 +64,19 @@ export async function POST(request: NextRequest) {
         let imageBuffer: Buffer;
 
         if (imageData.processedDataUrl) {
-          // 효과 적용된 데이터 URL을 Buffer로 변환
+          // 효과 적용된 데이터 URL을 Buffer로 변환 후 WebP 고품질로 변환
           const base64Data = imageData.processedDataUrl.split(',')[1];
-          imageBuffer = Buffer.from(base64Data, 'base64');
+          if (!base64Data) {
+            throw new Error('base64 데이터가 없습니다');
+          }
+          const originalBuffer = Buffer.from(base64Data, 'base64');
+
+          // 모든 이미지를 1200x1200으로 통일
+          imageBuffer = await convertToWebp(originalBuffer, {
+            width: 1200,
+            height: 1200,
+            quality: 90,
+          });
         } else {
           // 효과 적용 실패한 경우 원본 사용 (이 경우는 거의 없을 것)
           console.warn(`효과 적용된 데이터가 없어 건너뜀: ${imageData.title}`);
@@ -77,13 +88,11 @@ export async function POST(request: NextRequest) {
           };
         }
 
-        const sanitizedTitle = imageData.title
-          .replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '')
-          .replace(/\s+/g, '_')
-          .substring(0, 50);
-
-        const effectSuffix = `_${frame.id}_${filter.id}`;
-        const fileName = `${String(index + 1).padStart(3, '0')}_${sanitizedTitle || 'image'}${effectSuffix}.png`;
+        const fileName = generateSanitizedFilename({
+          title: imageData.title,
+          index,
+          effectSuffix: `_${frame.id}_${filter.id}`,
+        });
 
         zip.file(fileName, imageBuffer);
 
@@ -106,14 +115,6 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.all(downloadPromises);
 
-    // 실패한 항목들을 ZIP에 오류 파일로 추가
-    results.forEach((result) => {
-      if (!result.success) {
-        const errorContent = `파일: ${result.originalTitle}\n오류: ${result.error}\n시간: ${new Date().toISOString()}`;
-        zip.file(result.fileName, errorContent);
-      }
-    });
-
     console.log('ZIP 파일 생성 중...');
     const zipBuffer = await zip.generateAsync({
       type: 'nodebuffer',
@@ -128,9 +129,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`ZIP 파일 생성 완료: ${zipBuffer.length} bytes, 성공: ${successCount}, 실패: ${failedCount}`);
 
-    const sanitizedKeyword = body.keyword
-      ? body.keyword.replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '').replace(/\s+/g, '_').substring(0, 30)
-      : '';
+    const sanitizedKeyword = sanitizeKeyword(body.keyword);
 
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
     const zipFileName = sanitizedKeyword
@@ -140,13 +139,13 @@ export async function POST(request: NextRequest) {
     const headers = new Headers({
       'Content-Type': 'application/zip',
       'Content-Length': zipBuffer.length.toString(),
-      'Content-Disposition': `attachment; filename="${zipFileName}"`,
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
       'Cache-Control': 'no-cache',
       'X-Success-Count': successCount.toString(),
       'X-Failed-Count': failedCount.toString(),
     });
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers,
     });

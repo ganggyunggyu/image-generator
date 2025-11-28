@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
-import { fetchImageBuffer, convertToPng } from '@/utils/image';
-import { DownloadOptions, applyFrameAndFilterToImage } from '@/shared/lib/frame-filter';
+import { fetchImageBuffer, convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
+import { DownloadOptions } from '@/shared/lib/frame-filter';
 
 interface BulkDownloadRequest {
   images: Array<{
@@ -65,54 +65,19 @@ export async function POST(request: NextRequest) {
 
         let finalBuffer: Buffer;
 
-        if (hasEffects && body.effectOptions) {
-          // 효과 적용 경로: 캔버스로 처리
-          try {
-            // 먼저 이미지를 base64 데이터 URL로 변환
-            const imageBuffer = await fetchImageBuffer(decodedUrl);
-            const pngBuffer = await convertToPng(imageBuffer, {
-              width: imageData.width,
-              height: imageData.height,
-              maintainAspectRatio: true,
-              compressionLevel: 1,
-            });
-
-            const base64String = pngBuffer.toString('base64');
-            const dataUrl = `data:image/png;base64,${base64String}`;
-
-            // Node.js 환경에서는 직접 applyFrameAndFilterToImage를 사용할 수 없음
-            // 대신 이미지 버퍼를 그대로 사용 (서버에서는 Canvas API 없음)
-            console.warn('서버 환경에서는 효과 적용이 제한됩니다. 원본 이미지를 사용합니다.');
-            finalBuffer = pngBuffer;
-
-          } catch (effectError) {
-            console.error('효과 적용 실패, 원본 사용:', effectError);
-            const imageBuffer = await fetchImageBuffer(decodedUrl);
-            finalBuffer = await convertToPng(imageBuffer, {
-              width: imageData.width,
-              height: imageData.height,
-              maintainAspectRatio: true,
-              compressionLevel: 1,
-            });
-          }
-        } else {
-          // 기본 경로: 기존 방식
-          const imageBuffer = await fetchImageBuffer(decodedUrl);
-          finalBuffer = await convertToPng(imageBuffer, {
-            width: imageData.width,
-            height: imageData.height,
-            maintainAspectRatio: true,
-            compressionLevel: 1,
-          });
-        }
-
-        const sanitizedTitle = imageData.title
-          .replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '')
-          .replace(/\s+/g, '_')
-          .substring(0, 50);
+        const imageBuffer = await fetchImageBuffer(decodedUrl);
+        finalBuffer = await convertToWebp(imageBuffer, {
+          width: imageData.width,
+          height: imageData.height,
+          quality: 90,
+        });
 
         const effectSuffix = hasEffects ? `_${body.effectOptions?.frame.id}_${body.effectOptions?.filter.id}` : '';
-        const fileName = `${String(index + 1).padStart(3, '0')}_${sanitizedTitle || 'image'}${effectSuffix}.png`;
+        const fileName = generateSanitizedFilename({
+          title: imageData.title,
+          index,
+          effectSuffix,
+        });
 
         zip.file(fileName, finalBuffer);
 
@@ -159,9 +124,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const sanitizedKeyword = body.keyword
-      ? body.keyword.replace(/[^a-zA-Z0-9가-힣\s\-_]/g, '').replace(/\s+/g, '_').substring(0, 30)
-      : '';
+    const sanitizedKeyword = sanitizeKeyword(body.keyword);
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
     const zipFileName = sanitizedKeyword
@@ -172,14 +135,14 @@ export async function POST(request: NextRequest) {
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${zipFileName}"`,
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
       'Content-Length': zipBuffer.length.toString(),
       'X-Success-Count': successCount.toString(),
       'X-Failed-Count': failedCount.toString(),
       'X-Total-Count': body.images.length.toString(),
     });
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(zipBuffer as BodyInit, {
       status: 200,
       headers,
     });
