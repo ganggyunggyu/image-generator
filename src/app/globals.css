@@ -1,1 +1,70 @@
 @import 'tailwindcss';
+
+@layer base {
+  body {
+    @apply relative overflow-x-hidden;
+    background: #fafaf8;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  /* 미묘한 카드 효과 */
+  .card-hover {
+    transition: all 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 깔끔한 그림자 */
+  .shadow-clean {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-clean-lg {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 미니멀 글로우 */
+  .glow-mint {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  }
+
+  .glow-indigo {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+
+  /* 그라데이션 텍스트 - 미니멀 */
+  .gradient-text-mint {
+    background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gradient-text-indigo {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* 부드러운 페이드인 */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+}
