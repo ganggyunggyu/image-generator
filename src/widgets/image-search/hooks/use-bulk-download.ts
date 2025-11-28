@@ -28,13 +28,15 @@ export const useBulkDownload = () => {
     options: DownloadOptions
   ) => {
     const { selectedImages, results, query } = params;
-    const selectedResults = Array.from(selectedImages).map(index => ({
-      url: results[index].link,
-      title: results[index].title,
-      width: results[index].image.width,
-      height: results[index].image.height,
-      imageUrl: results[index].imageUrl,
-    }));
+    const selectedResults = Array.from(selectedImages)
+      .filter(index => results[index])
+      .map(index => ({
+        url: results[index]!.link,
+        title: results[index]!.title,
+        width: results[index]!.image.width,
+        height: results[index]!.image.height,
+        imageUrl: results[index]!.imageUrl,
+      }));
 
     setDownloadProgress(`효과 적용 중... (${options.frame.name} + ${options.filter.name})`);
 
@@ -51,7 +53,7 @@ export const useBulkDownload = () => {
             processedDataUrl,
           };
         } catch (error) {
-          console.error(`효과 적용 실패: ${imageData.title}`, error);
+          console.error(`❌💥 효과 적용 실패했다 ㅅㅂ!! 😭🔥 ${imageData.title}`, error);
           return imageData;
         }
       })
@@ -87,13 +89,15 @@ export const useBulkDownload = () => {
 
   const handleBulkDownloadBasic = async (params: BulkDownloadParams) => {
     const { selectedImages, results, query } = params;
-    const selectedResults = Array.from(selectedImages).map(index => ({
-      url: results[index].link,
-      title: results[index].title,
-      width: results[index].image.width,
-      height: results[index].image.height,
-      imageUrl: results[index].imageUrl,
-    }));
+    const selectedResults = Array.from(selectedImages)
+      .filter(index => results[index])
+      .map(index => ({
+        url: results[index]!.link,
+        title: results[index]!.title,
+        width: results[index]!.image.width,
+        height: results[index]!.image.height,
+        imageUrl: results[index]!.imageUrl,
+      }));
 
     setDownloadProgress(`${selectedResults.length}개 이미지 다운로드 중...`);
 
@@ -112,7 +116,7 @@ export const useBulkDownload = () => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('일괄 다운로드 API 에러:', errorData);
+      console.error('❌🚨 일괄 다운로드 API 터짐!! 완전 박살났다!! 💀💥', errorData);
       throw new Error(errorData.error || '일괄 다운로드에 실패했습니다');
     }
 
@@ -121,7 +125,7 @@ export const useBulkDownload = () => {
     const blob = await response.blob();
     const contentDisposition = response.headers.get('Content-Disposition');
     const fileName = contentDisposition
-      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+      ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`)
       : `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`;
 
     downloadBlob(blob, fileName);
@@ -160,7 +164,7 @@ export const useBulkDownload = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다';
       setDownloadProgress('');
-      console.error('일괄 다운로드 오류:', err);
+      console.error('❌💀 일괄 다운로드 오류!! 아이고난!! 🔥😱💥', err);
       return errorMessage;
     } finally {
       setBulkDownloadLoading(false);

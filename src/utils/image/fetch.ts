@@ -3,7 +3,7 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
 
   for (let attempt = 0; attempt < retryCount; attempt++) {
     try {
-      console.log(`이미지 fetch 시도 ${attempt + 1}/${retryCount}:`, imageUrl);
+      console.log(`🌐🚀 이미지 fetch 시도!! ${attempt + 1}/${retryCount} 🔥💨`, imageUrl);
 
       // URL 인코딩: 한글/특수문자 처리
       let encodedUrl = imageUrl;
@@ -24,7 +24,7 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
       ];
 
-      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)] || userAgents[0];
+      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)]!;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -75,7 +75,7 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
           throw new Error(`올바른 이미지 형식이 아닙니다: ${contentType}`);
         }
 
-        console.log(`Content-Type이 올바르지 않지만 실제 이미지임: ${contentType}`);
+        console.log(`⚠️✨ Content-Type 이상한데 이미지 맞네!! 오케이!! 🎯💯 ${contentType}`);
         return buffer;
       }
 
@@ -91,12 +91,12 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
         throw new Error('이미지 파일 형식이 올바르지 않습니다');
       }
 
-      console.log(`이미지 fetch 성공: ${buffer.length} bytes (${contentType})`);
+      console.log(`✅🎉 이미지 fetch 성공!! 개쩐다!! 🔥💯 ${buffer.length} bytes (${contentType}) 🌟`);
       return buffer;
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('알 수 없는 오류');
-      console.warn(`이미지 fetch 실패 (시도 ${attempt + 1}/${retryCount}):`, lastError.message);
+      console.warn(`⚠️💥 이미지 fetch 실패!! 아직 안 포기함!! (시도 ${attempt + 1}/${retryCount}) 🔄`, lastError.message);
 
       // 재시도하기 전 잠시 대기
       if (attempt < retryCount - 1) {

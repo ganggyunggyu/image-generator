@@ -56,12 +56,14 @@ export const useBulkDownload = () => {
     setDownloadProgress('이미지 준비 중...');
 
     try {
-      const selectedResults = Array.from(selectedImages).map(index => ({
-        url: results[index].link,
-        title: results[index].title,
-        width: results[index].image.width,
-        height: results[index].image.height,
-      }));
+      const selectedResults = Array.from(selectedImages)
+        .filter(index => results[index])
+        .map(index => ({
+          url: results[index]!.link,
+          title: results[index]!.title,
+          width: results[index]!.image.width,
+          height: results[index]!.image.height,
+        }));
 
       setDownloadProgress(`${selectedResults.length}개 이미지 다운로드 중...`);
 
@@ -88,7 +90,7 @@ export const useBulkDownload = () => {
 
       const contentDisposition = response.headers.get('Content-Disposition');
       const fileName = contentDisposition
-        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`)
         : `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`;
 
       const link = document.createElement('a');
@@ -115,7 +117,7 @@ export const useBulkDownload = () => {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다';
       setError(errorMessage);
       setDownloadProgress('');
-      console.error('일괄 다운로드 오류:', err);
+      console.error('❌💀 일괄 다운로드 오류!! 아이고난!! 🔥😱💥', err);
     } finally {
       setBulkDownloadLoading(false);
     }

@@ -74,7 +74,7 @@ export const ImageSearchWithState: React.FC = () => {
   };
 
   const handleImageClick = (imageUrl: string, title: string) => {
-    console.log('이미지 클릭:', title, imageUrl);
+    console.log('👆✨ 이미지 클릭했다!! 🎨🔥', title, '🌐', imageUrl);
     window.open(imageUrl, '_blank', 'noopener,noreferrer');
   };
 

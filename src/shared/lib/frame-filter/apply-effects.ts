@@ -91,7 +91,7 @@ export const applyFrameToImage = async (
 ): Promise<string> => {
   const options: DownloadOptions = {
     frame: frameStyle,
-    filter: FILTER_STYLES[0],
+    filter: FILTER_STYLES[0]!,
     quality: 1.0,
   };
   return applyFrameAndFilterToImage(imageUrl, options, maxWidth);

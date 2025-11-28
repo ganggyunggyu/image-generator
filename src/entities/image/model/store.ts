@@ -11,7 +11,7 @@ export const searchErrorAtom = atom<string | null>(null);
 
 export const totalResultsAtom = atom<string>('0');
 
-export const selectedImagesAtom = atom<Set<number>>(new Set());
+export const selectedImagesAtom = atom<Set<number>>(new Set<number>());
 
 export const bulkDownloadLoadingAtom = atom<boolean>(false);
 
