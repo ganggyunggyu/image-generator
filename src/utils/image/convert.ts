@@ -12,14 +12,14 @@ export const convertToWebp = async (
   options: ConvertToWebpOptions = {}
 ): Promise<Buffer> => {
   try {
-    console.log('WebP 변환 시작');
+    console.log('🔄✨ WebP 변환 시작한다!! 🚀💫');
 
     const { width, height, quality = 90 } = options;
 
     const sharpImage = sharp(imageBuffer);
     const metadata = await sharpImage.metadata();
 
-    console.log('원본 이미지 정보:', {
+    console.log('📸💎 원본 이미지 정보 확인!! 🔍✨', {
       format: metadata.format,
       width: metadata.width,
       height: metadata.height,
@@ -42,10 +42,10 @@ export const convertToWebp = async (
       })
       .toBuffer();
 
-    console.log(`WebP 변환 성공: ${webpBuffer.length} bytes (${targetWidth}x${targetHeight}, quality: ${quality})`);
+    console.log(`✅🎉 WebP 변환 성공했다!! 개쩐다!! 🔥💯 ${webpBuffer.length} bytes (${targetWidth}x${targetHeight}, quality: ${quality}) 🌟`);
     return webpBuffer;
   } catch (error) {
-    console.error('WebP 변환 실패:', error);
+    console.error('❌💥 WebP 변환 실패!! 박살났다!! 😭🔥', error);
 
     if (error instanceof Error) {
       throw new Error(`이미지 변환 실패: ${error.message}`);

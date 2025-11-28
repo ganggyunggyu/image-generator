@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
     const body: BulkDownloadRequest = await request.json();
     const hasEffects = body.effectOptions && (body.effectOptions.frame.id !== 'none' || body.effectOptions.filter.id !== 'none');
 
-    console.log(`일괄 다운로드 요청: ${body.images.length}개 이미지, 효과 적용: ${hasEffects ? 'Yes' : 'No'}`);
+    console.log(`📦🚀 일괄 다운로드 요청!! ${body.images.length}개 이미지 🔥💨 효과 적용: ${hasEffects ? 'Yes' : 'No'}`);
     if (hasEffects) {
-      console.log(`액자: ${body.effectOptions?.frame.name}, 필터: ${body.effectOptions?.filter.name}`);
+      console.log(`🎨✨ 액자: ${body.effectOptions?.frame.name}, 필터: ${body.effectOptions?.filter.name} 💫`);
     }
 
     if (!body.images || !Array.isArray(body.images)) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const downloadPromises = body.images.map(async (imageData, index) => {
       try {
         const decodedUrl = decodeURIComponent(imageData.url);
-        console.log(`이미지 처리 중 ${index + 1}/${body.images.length}: ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
+        console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
 
         let finalBuffer: Buffer;
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           originalTitle: imageData.title,
         };
       } catch (error) {
-        console.error(`이미지 처리 실패 ${index + 1}: ${imageData.title}`, error);
+        console.error(`❌💥 이미지 처리 실패!! ${index + 1} 😭🔥 ${imageData.title}`, error);
 
         return {
           success: false,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`ZIP 생성 시작 - 성공: ${successCount}개, 실패: ${failedCount}개`);
+    console.log(`📦🔄 ZIP 생성 시작!! 성공: ${successCount}개, 실패: ${failedCount}개 🚀💨`);
 
     const zipBuffer = await zip.generateAsync({
       type: 'nodebuffer',
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       ? `${sanitizedKeyword}_${timestamp}.zip`
       : `images_${timestamp}.zip`;
 
-    console.log(`ZIP 생성 완료: ${zipBuffer.length} bytes`);
+    console.log(`✅🎉 ZIP 생성 완료!! 개쩐다!! 🔥💯 ${zipBuffer.length} bytes 🌟`);
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       headers,
     });
   } catch (error) {
-    console.error('일괄 다운로드 API 오류:', error);
+    console.error('❌💀 일괄 다운로드 API 오류!! 완전 박살났다!! 🔥😱💥', error);
 
     let errorMessage = '일괄 다운로드 중 오류가 발생했습니다';
     let statusCode = 500;

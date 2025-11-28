@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { frame, filter } = body.effectOptions;
-    console.log(`효과 적용 일괄 다운로드: ${body.processedImages.length}개 이미지 (${frame.name} + ${filter.name})`);
+    console.log(`🎨✨ 효과 적용 일괄 다운로드 시작!! ${body.processedImages.length}개 이미지 (${frame.name} + ${filter.name}) 🚀💫`);
 
     const zip = new JSZip();
     const downloadPromises = body.processedImages.map(async (imageData, index) => {
       try {
-        console.log(`처리된 이미지 추가 중 ${index + 1}/${body.processedImages.length}: ${imageData.title}`);
+        console.log(`📦✨ 처리된 이미지 추가 중!! ${index + 1}/${body.processedImages.length} 🔥💨 ${imageData.title}`);
 
         let imageBuffer: Buffer;
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           });
         } else {
           // 효과 적용 실패한 경우 원본 사용 (이 경우는 거의 없을 것)
-          console.warn(`효과 적용된 데이터가 없어 건너뜀: ${imageData.title}`);
+          console.warn(`⚠️💥 효과 적용된 데이터가 없어서 건너뜀!! 😭 ${imageData.title}`);
           return {
             success: false,
             fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_NO_EFFECT.txt`,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           originalTitle: imageData.title,
         };
       } catch (error) {
-        console.error(`처리된 이미지 추가 실패 ${index + 1}: ${imageData.title}`, error);
+        console.error(`❌💥 처리된 이미지 추가 실패!! 박살났다!! ${index + 1} 😭🔥 ${imageData.title}`, error);
 
         return {
           success: false,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.all(downloadPromises);
 
-    console.log('ZIP 파일 생성 중...');
+    console.log('📦🔄 ZIP 파일 생성 중!! 기다려!! 🚀💫');
     const zipBuffer = await zip.generateAsync({
       type: 'nodebuffer',
       compression: 'DEFLATE',
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     const successCount = results.filter(r => r.success).length;
     const failedCount = results.filter(r => !r.success).length;
 
-    console.log(`ZIP 파일 생성 완료: ${zipBuffer.length} bytes, 성공: ${successCount}, 실패: ${failedCount}`);
+    console.log(`✅🎉 ZIP 파일 생성 완료!! 개쩐다!! 🔥💯 ${zipBuffer.length} bytes, 성공: ${successCount}, 실패: ${failedCount} 🌟`);
 
     const sanitizedKeyword = sanitizeKeyword(body.keyword);
 
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       headers,
     });
   } catch (error) {
-    console.error('효과 적용 일괄 다운로드 API 오류:', error);
+    console.error('❌💀 효과 적용 일괄 다운로드 API 오류!! 완전 박살났다!! 🔥😱💥', error);
 
     let errorMessage = '효과 적용 일괄 다운로드 중 오류가 발생했습니다';
     let statusCode = 500;
