@@ -13,8 +13,13 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   return (
     <React.Fragment>
       <div className={cn('text-center mb-8', className)}>
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="mt-2 text-gray-600">{message}</p>
+        <div className="inline-flex items-center justify-center">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full border-4 border-gray-200"></div>
+            <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+          </div>
+        </div>
+        <p className="mt-4 text-gray-600 font-medium">{message}</p>
       </div>
     </React.Fragment>
   );

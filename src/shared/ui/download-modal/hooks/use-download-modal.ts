@@ -9,8 +9,8 @@ import {
 } from '@/shared/lib/frame-filter';
 
 export const useDownloadModal = (imageUrl: string, imageName: string, isOpen: boolean) => {
-  const [selectedFrame, setSelectedFrame] = useState<FrameStyle>(FRAME_STYLES[0]);
-  const [selectedFilter, setSelectedFilter] = useState<FilterStyle>(FILTER_STYLES[0]);
+  const [selectedFrame, setSelectedFrame] = useState<FrameStyle>(FRAME_STYLES[0]!);
+  const [selectedFilter, setSelectedFilter] = useState<FilterStyle>(FILTER_STYLES[0]!);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);

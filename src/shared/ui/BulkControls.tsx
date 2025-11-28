@@ -23,8 +23,8 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
   className,
 }) => {
   const [showEffectOptions, setShowEffectOptions] = React.useState(false);
-  const [selectedFrame, setSelectedFrame] = React.useState<FrameStyle>(FRAME_STYLES[0]);
-  const [selectedFilter, setSelectedFilter] = React.useState<FilterStyle>(FILTER_STYLES[0]);
+  const [selectedFrame, setSelectedFrame] = React.useState<FrameStyle>(FRAME_STYLES[0]!);
+  const [selectedFilter, setSelectedFilter] = React.useState<FilterStyle>(FILTER_STYLES[0]!);
 
   const handleBasicDownload = () => {
     onBulkDownload();

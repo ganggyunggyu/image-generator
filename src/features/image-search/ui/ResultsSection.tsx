@@ -30,7 +30,6 @@ export const ResultsSection: React.FC = () => {
       return (
         <React.Fragment>
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-medium text-gray-800 mb-2">
               검색 결과가 없습니다
             </h3>
@@ -46,7 +45,6 @@ export const ResultsSection: React.FC = () => {
       return (
         <React.Fragment>
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎨</div>
             <h3 className="text-xl font-medium text-gray-800 mb-2">
               이미지를 검색해보세요
             </h3>
@@ -64,26 +62,19 @@ export const ResultsSection: React.FC = () => {
   return (
     <React.Fragment>
       {/* Results Header */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              검색 결과
-            </h2>
-            <p className="text-gray-600">
-              총 {parseInt(totalResults).toLocaleString()}개 중 {results.length}개 표시
-            </p>
-          </div>
+      <div className="mb-6 space-y-4">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          검색 결과
+        </h2>
 
-          {/* 일괄 선택 컨트롤 */}
-          <BulkControls
-            selectedCount={selectedImages.size}
-            onSelectAll={selectAllImages}
-            onClearSelection={clearSelection}
-            onBulkDownload={handleBulkDownload}
-            bulkDownloadLoading={bulkDownloadLoading}
-          />
-        </div>
+        {/* 일괄 선택 컨트롤 */}
+        <BulkControls
+          selectedCount={selectedImages.size}
+          onSelectAll={selectAllImages}
+          onClearSelection={clearSelection}
+          onBulkDownload={handleBulkDownload}
+          bulkDownloadLoading={bulkDownloadLoading}
+        />
 
         {/* 다운로드 진행상태 */}
         {downloadProgress && (
@@ -94,8 +85,8 @@ export const ResultsSection: React.FC = () => {
         )}
 
         {selectedImages.size > 0 && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-800">
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <p className="text-sm font-medium text-emerald-800">
               {selectedImages.size}개 이미지 선택됨 (최대 30개)
             </p>
           </div>
