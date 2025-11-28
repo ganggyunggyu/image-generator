@@ -55,14 +55,14 @@ export const useImageSearch = () => {
     }
   };
 
-  const handleImageClick = (pngUrl: string, title: string) => {
-    window.open(pngUrl, '_blank', 'noopener,noreferrer');
+  const handleImageClick = (imageUrl: string, title: string) => {
+    window.open(imageUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleDownload = (pngUrl: string, title: string) => {
+  const handleDownload = (imageUrl: string, title: string) => {
     const link = document.createElement('a');
-    link.href = pngUrl;
-    link.download = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '')}.png`;
+    link.href = imageUrl;
+    link.download = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '')}.webp`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

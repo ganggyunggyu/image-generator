@@ -61,7 +61,7 @@ export interface ProcessedImageResult {
     byteSize: number;
     thumbnailLink: string;
   };
-  pngUrl: string;
+  imageUrl: string;
 }
 
 const isValidImageUrl = (url: string, mime?: string): boolean => {
@@ -174,14 +174,12 @@ export const getGoogleImageResults = async (
   try {
     for (let i = 0; i < requestsNeeded; i++) {
       // 랜덤 모드일 때는 시작 인덱스를 랜덤하게 선택
-      let startIndex;
+      let startIndex = i * 10 + 1;
       if (sortOrder === 'random') {
         // 각 배치마다 다른 랜덤 시작점 (1-91 사이, 3번만 호출)
         const randomStartOptions = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
-        startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)];
+        startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)]!;
         console.log(`랜덤 배치 ${i + 1}/3: startIndex=${startIndex}`);
-      } else {
-        startIndex = i * 10 + 1;
       }
 
       const currentBatchSize = Math.min(10, resultsNeeded - allResults.length);
@@ -240,7 +238,7 @@ export const getGoogleImageResults = async (
         })
         .map((item) => {
           const encodedImageUrl = encodeURIComponent(item.link);
-          const pngUrl = `/api/image/proxy?src=${encodedImageUrl}`;
+          const imageUrl = `/api/image/proxy?src=${encodedImageUrl}`;
 
           return {
             title: item.title,
@@ -252,7 +250,7 @@ export const getGoogleImageResults = async (
               byteSize: item.image.byteSize,
               thumbnailLink: item.image.thumbnailLink,
             },
-            pngUrl,
+            imageUrl,
           };
         });
 
@@ -281,7 +279,7 @@ export const getGoogleImageResults = async (
     if (sortOrder === 'random') {
       for (let i = finalResults.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [finalResults[i], finalResults[j]] = [finalResults[j], finalResults[i]];
+        [finalResults[i], finalResults[j]] = [finalResults[j]!, finalResults[i]!];
       }
       console.log(`Fisher-Yates 셔플 적용: ${finalResults.length}개 항목`);
 

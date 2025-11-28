@@ -8,7 +8,7 @@ export interface ImageResult {
     byteSize: number;
     thumbnailLink: string;
   };
-  pngUrl: string;
+  imageUrl: string;
 }
 
 export interface SearchResponse {
