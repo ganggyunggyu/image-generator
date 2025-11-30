@@ -30,8 +30,8 @@ export const convertToWebp = async (
 
     const webpBuffer = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, {
-        fit: 'cover',
-        withoutEnlargement: false,
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
       .webp({
         quality: clamp(quality, 1, 100),
