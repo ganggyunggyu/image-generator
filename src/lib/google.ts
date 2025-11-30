@@ -73,7 +73,7 @@ const isValidImageUrl = (url: string, mime?: string): boolean => {
     if (mime) {
       const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
       if (!validMimes.includes(mime.toLowerCase())) {
-        console.log(`MIME 타입 거부: ${mime} - ${url}`);
+        console.log(`⚠️❌ MIME 타입 거부!! ${mime} 🚫 ${url}`);
         return false;
       }
     }
@@ -82,54 +82,31 @@ const isValidImageUrl = (url: string, mime?: string): boolean => {
     const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
     const hasValidExtension = validExtensions.some(ext => pathname.endsWith(ext));
 
-    // 3. 블랙리스트 도메인 체크
+    // 3. 블랙리스트 도메인 체크 (SNS 동영상 플랫폼만 차단)
     const blacklistedDomains = [
-      'naver.com',
-      'tistory.com',
-      'blog.naver.com',
-      'cafe.naver.com',
-      'facebook.com',
-      'instagram.com',
-      'twitter.com',
-      'youtube.com'
+      'youtube.com',
+      'youtu.be',
+      'tiktok.com',
+      'twitch.tv'
     ];
 
     const isBlacklisted = blacklistedDomains.some(domain => urlObj.hostname.includes(domain));
     if (isBlacklisted) {
-      console.log(`블랙리스트 도메인 거부: ${urlObj.hostname} - ${url}`);
+      console.log(`🚫💀 블랙리스트 도메인 거부!! ${urlObj.hostname} ❌ ${url}`);
       return false;
     }
 
-    // 4. 의심스러운 URL 패턴 체크
+    // 4. 리다이렉트/프록시 URL만 차단
     const suspiciousPatterns = [
-      '/blog/',
-      '/post/',
-      '/article/',
-      '/news/',
-      '/story/',
-      'viewer.html',
-      'redirect',
-      'proxy'
+      'redirect.php',
+      'proxy.php',
+      'go.php'
     ];
 
     const hasSuspiciousPattern = suspiciousPatterns.some(pattern => pathname.includes(pattern));
     if (hasSuspiciousPattern) {
-      console.log(`의심스러운 패턴 거부: ${pathname} - ${url}`);
+      console.log(`⚠️🔍 의심스러운 패턴 거부!! ${pathname} 🚫 ${url}`);
       return false;
-    }
-
-    // 5. 이미지 크기 체크 (너무 작으면 썸네일일 가능성)
-    const hasImageParam = urlObj.searchParams.has('w') || urlObj.searchParams.has('width') ||
-                         urlObj.searchParams.has('h') || urlObj.searchParams.has('height');
-
-    if (hasImageParam) {
-      const width = parseInt(urlObj.searchParams.get('w') || urlObj.searchParams.get('width') || '0');
-      const height = parseInt(urlObj.searchParams.get('h') || urlObj.searchParams.get('height') || '0');
-
-      if ((width > 0 && width < 100) || (height > 0 && height < 100)) {
-        console.log(`이미지 크기 너무 작음: ${width}x${height} - ${url}`);
-        return false;
-      }
     }
 
     return hasValidExtension;
@@ -168,8 +145,8 @@ export const getGoogleImageResults = async (
   const resultsNeeded = sortOrder === 'random' ? 30 : numberOfResults;
   const requestsNeeded = Math.ceil(resultsNeeded / 10);
 
-  console.log(`이미지 검색 요청: "${query}" (${numberOfResults}개 요청, ${sortOrder} 순서)`);
-  console.log(`${sortOrder === 'random' ? '랜덤' : '순차'} 모드: ${resultsNeeded}개 수집 예정, ${requestsNeeded}번 API 호출`);
+  console.log(`🔍🚀 이미지 검색 요청!! "${query}" (${numberOfResults}개 요청, ${sortOrder} 순서) 🔥💨`);
+  console.log(`🎲✨ ${sortOrder === 'random' ? '랜덤' : '순차'} 모드!! ${resultsNeeded}개 수집 예정, ${requestsNeeded}번 API 호출 💫`);
 
   try {
     for (let i = 0; i < requestsNeeded; i++) {
@@ -179,7 +156,7 @@ export const getGoogleImageResults = async (
         // 각 배치마다 다른 랜덤 시작점 (1-91 사이, 3번만 호출)
         const randomStartOptions = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
         startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)]!;
-        console.log(`랜덤 배치 ${i + 1}/3: startIndex=${startIndex}`);
+        console.log(`🎲🔥 랜덤 배치!! ${i + 1}/3 startIndex=${startIndex} 💨`);
       }
 
       const currentBatchSize = Math.min(10, resultsNeeded - allResults.length);
@@ -195,7 +172,7 @@ export const getGoogleImageResults = async (
       searchUrl.searchParams.set('start', startIndex.toString());
       searchUrl.searchParams.set('safe', 'active');
 
-      console.log(`Google API 호출 ${i + 1}/${requestsNeeded} (시작 인덱스: ${startIndex}, ${sortOrder} 모드)`);
+      console.log(`🌐🚀 Google API 호출!! ${i + 1}/${requestsNeeded} (시작 인덱스: ${startIndex}, ${sortOrder} 모드) 🔥💨`);
 
       const response = await fetch(searchUrl.toString(), {
         method: 'GET',
@@ -206,7 +183,7 @@ export const getGoogleImageResults = async (
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn(`Google API 응답 오류 (배치 ${i + 1}): ${response.status} ${response.statusText}`);
+        console.warn(`⚠️💥 Google API 응답 오류!! (배치 ${i + 1}) 😭 ${response.status} ${response.statusText}`);
 
         if (i === 0) {
           throw new Error(
@@ -224,7 +201,7 @@ export const getGoogleImageResults = async (
       totalSearchTime += data.searchInformation?.searchTime || 0;
 
       if (!data.items || data.items.length === 0) {
-        console.log(`배치 ${i + 1}에서 결과 없음`);
+        console.log(`⚠️🔍 배치 ${i + 1}에서 결과 없음!! 😭`);
         break;
       }
 
@@ -232,7 +209,7 @@ export const getGoogleImageResults = async (
         .filter((item) => {
           const isValid = isValidImageUrl(item.link, item.mime);
           if (!isValid) {
-            console.log(`이미지 URL 필터링: ${item.title} - ${item.link}`);
+            console.log(`🚫❌ 이미지 URL 필터링!! ${item.title} 🔥 ${item.link}`);
           }
           return isValid;
         })
@@ -255,7 +232,7 @@ export const getGoogleImageResults = async (
         });
 
       allResults.push(...batchResults);
-      console.log(`배치 ${i + 1} 완료: ${batchResults.length}개 추가 (총 ${allResults.length}개)`);
+      console.log(`✅💫 배치 ${i + 1} 완료!! ${batchResults.length}개 추가 🔥 (총 ${allResults.length}개) 🎯`);
 
       if (allResults.length >= resultsNeeded) {
         break;
@@ -281,14 +258,14 @@ export const getGoogleImageResults = async (
         const j = Math.floor(Math.random() * (i + 1));
         [finalResults[i], finalResults[j]] = [finalResults[j]!, finalResults[i]!];
       }
-      console.log(`Fisher-Yates 셔플 적용: ${finalResults.length}개 항목`);
+      console.log(`🎲✨ Fisher-Yates 셔플 적용!! ${finalResults.length}개 항목 섞었다!! 🔥💨`);
 
       finalResults = finalResults.slice(0, numberOfResults);
     } else {
       finalResults = finalResults.slice(0, numberOfResults);
     }
 
-    console.log(`Google API 성공: 총 ${allResults.length}개 수집 → ${finalResults.length}개 반환`);
+    console.log(`✅🎉 Google API 성공!! 개쩐다!! 총 ${allResults.length}개 수집 → ${finalResults.length}개 반환 🔥💯🌟`);
 
     return {
       results: finalResults,
@@ -296,7 +273,7 @@ export const getGoogleImageResults = async (
       searchTime: totalSearchTime,
     };
   } catch (error) {
-    console.error('Google API 호출 실패:', error);
+    console.error('❌💀 Google API 호출 실패!! 완전 박살났다!! 🔥😱💥', error);
 
     if (error instanceof Error) {
       throw new Error(`이미지 검색 실패: ${error.message}`);
