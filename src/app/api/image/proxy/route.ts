@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`이미지 프록시 요청: ${decodedImageUrl}${width || height ? ` (${width || 'auto'}x${height || 'auto'})` : ''}`);
+    console.log(`🌐🚀 이미지 프록시 요청!! ${decodedImageUrl}${width || height ? ` (${width || 'auto'}x${height || 'auto'})` : ''} 🔥💨`);
 
     const imageBuffer = await fetchImageBuffer(decodedImageUrl);
 
@@ -89,16 +89,16 @@ export async function GET(request: NextRequest) {
       headers.set('X-Resized', `${width || 'auto'}x${height || 'auto'}`);
     }
 
-    console.log(`WebP 프록시 성공: ${webpBuffer.length} bytes`);
+    console.log(`✅🎉 WebP 프록시 성공!! 개쩐다!! ${webpBuffer.length} bytes 🔥💯🌟`);
 
     return new NextResponse(webpBuffer as BodyInit, {
       status: 200,
       headers,
     });
   } catch (error) {
-    console.error('이미지 프록시 API 오류:', error);
-    console.error('요청된 URL:', decodedImageUrl);
-    console.error('에러 스택:', error instanceof Error ? error.stack : 'Unknown error');
+    console.error('❌💀 이미지 프록시 API 오류!! 완전 박살났다!! 🔥😱💥', error);
+    console.error('🔗💥 요청된 URL:', decodedImageUrl);
+    console.error('📜🔥 에러 스택:', error instanceof Error ? error.stack : 'Unknown error');
 
     let errorMessage = '이미지 처리 중 오류가 발생했습니다';
     let statusCode = 500;

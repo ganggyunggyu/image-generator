@@ -26,7 +26,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
 }) => {
   return (
     <React.Fragment>
-      <form onSubmit={onSubmit} className={cn('max-w-4xl mx-auto', className)}>
+      <form onSubmit={onSubmit} className={cn('max-w-4xl mx-auto relative z-10', className)}>
         <div className="space-y-4">
           {/* 메인 검색창 */}
           <div className="flex gap-3">
@@ -75,11 +75,11 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                         onClick={() => onImageCountChange(count)}
                         disabled={loading}
                         className={cn(
-                          'px-3 py-1.5 rounded-md font-medium transition-colors',
+                          'px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer',
                           imageCount === count
                             ? 'bg-emerald-500 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-                          'disabled:opacity-50'
+                          'disabled:opacity-50 disabled:cursor-not-allowed'
                         )}
                       >
                         {count}
@@ -99,11 +99,11 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                       onClick={() => onSortOrderChange('original')}
                       disabled={loading}
                       className={cn(
-                        'px-3 py-1.5 rounded-md font-medium transition-colors',
+                        'px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer',
                         sortOrder === 'original'
                           ? 'bg-emerald-500 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-                        'disabled:opacity-50'
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
                       )}
                     >
                       순서대로
@@ -113,11 +113,11 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                       onClick={() => onSortOrderChange('random')}
                       disabled={loading}
                       className={cn(
-                        'px-3 py-1.5 rounded-md font-medium transition-colors',
+                        'px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer',
                         sortOrder === 'random'
                           ? 'bg-emerald-500 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-                        'disabled:opacity-50'
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
                       )}
                     >
                       랜덤

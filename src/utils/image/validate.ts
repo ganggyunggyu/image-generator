@@ -13,7 +13,7 @@ export const getImageMetadata = async (imageBuffer: Buffer) => {
       size: imageBuffer.length,
     };
   } catch (error) {
-    console.error('메타데이터 추출 실패:', error);
+    console.error('❌💥 메타데이터 추출 실패!! 박살났다!! 😭🔥', error);
     throw new Error('이미지 메타데이터를 읽을 수 없습니다');
   }
 };

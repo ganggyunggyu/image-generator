@@ -31,7 +31,7 @@ export const useDownloadModal = (imageUrl: string, imageName: string, isOpen: bo
         const preview = await applyFrameAndFilterToImage(imageUrl, options, 300);
         setPreviewUrl(preview);
       } catch (error) {
-        console.error('미리보기 생성 실패:', error);
+        console.error('❌💥 미리보기 생성 실패!! 😭🔥', error);
       } finally {
         setPreviewLoading(false);
       }
@@ -68,9 +68,9 @@ export const useDownloadModal = (imageUrl: string, imageName: string, isOpen: bo
       link.click();
       document.body.removeChild(link);
 
-      console.log(`다운로드 완료: ${fileName}`);
+      console.log(`✅🎉 다운로드 완료!! 개쩐다!! 🔥💯 ${fileName} 🌟`);
     } catch (error) {
-      console.error('다운로드 실패:', error);
+      console.error('❌💥 다운로드 실패!! 박살났다!! 😭🔥', error);
       alert('다운로드 중 오류가 발생했습니다');
     } finally {
       setIsProcessing(false);

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     const sortOrder = searchParams.get('sortOrder') as 'original' | 'random' || 'random';
 
-    console.log(`이미지 검색 요청: "${query}" (${numberOfResults}개, ${sortOrder} 순서)`);
+    console.log(`🔍🚀 이미지 검색 요청!! "${query}" (${numberOfResults}개, ${sortOrder} 순서) 🔥💨`);
 
     const searchResults = await getGoogleImageResults(query, numberOfResults, sortOrder);
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('이미지 검색 API 오류:', error);
+    console.error('❌💀 이미지 검색 API 오류!! 완전 박살났다!! 🔥😱💥', error);
 
     let errorMessage = '이미지 검색 중 오류가 발생했습니다';
     let statusCode = 500;
