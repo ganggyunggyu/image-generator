@@ -45,8 +45,31 @@ export const useBulkDownload = () => {
         try {
           setDownloadProgress(`효과 적용 중... (${index + 1}/${selectedResults.length})`);
 
-          const { applyFrameAndFilterToImage } = await import('@/shared/lib/frame-filter');
-          const processedDataUrl = await applyFrameAndFilterToImage(imageData.imageUrl, options, 1200);
+          const { applyFrameAndFilterToImage, FRAME_STYLES, FILTER_STYLES } = await import('@/shared/lib/frame-filter');
+
+          // 랜덤 액자/필터 선택
+          let actualFrame = options.frame;
+          let actualFilter = options.filter;
+
+          if (options.frame.id === 'random') {
+            // 'none'과 'random'을 제외한 실제 액자 중에서 랜덤 선택
+            const realFrames = FRAME_STYLES.filter(f => f.id !== 'none' && f.id !== 'random');
+            actualFrame = realFrames[Math.floor(Math.random() * realFrames.length)]!;
+          }
+
+          if (options.filter.id === 'random') {
+            // 'none'과 'random'을 제외한 실제 필터 중에서 랜덤 선택
+            const realFilters = FILTER_STYLES.filter(f => f.id !== 'none' && f.id !== 'random');
+            actualFilter = realFilters[Math.floor(Math.random() * realFilters.length)]!;
+          }
+
+          const actualOptions = {
+            ...options,
+            frame: actualFrame,
+            filter: actualFilter,
+          };
+
+          const processedDataUrl = await applyFrameAndFilterToImage(imageData.imageUrl, actualOptions, 1200);
 
           return {
             ...imageData,
