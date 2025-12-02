@@ -7,6 +7,7 @@ import {
   searchErrorAtom,
   searchQueryAtom,
 } from '@/entities/image';
+import { downloadBlob, generateTimestampFilename } from '@/utils/browser';
 
 export const useBulkDownload = () => {
   const [results] = useAtom(searchResultsAtom);
@@ -86,21 +87,12 @@ export const useBulkDownload = () => {
       setDownloadProgress('ZIP 파일 생성 중...');
 
       const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-
       const contentDisposition = response.headers.get('Content-Disposition');
       const fileName = contentDisposition
-        ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`)
-        : `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`;
+        ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || generateTimestampFilename('images'))
+        : generateTimestampFilename('images');
 
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      window.URL.revokeObjectURL(downloadUrl);
+      downloadBlob(blob, fileName);
 
       const successCount = response.headers.get('X-Success-Count');
       const failedCount = response.headers.get('X-Failed-Count');

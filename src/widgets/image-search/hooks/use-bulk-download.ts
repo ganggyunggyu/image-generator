@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ImageResult } from '@/shared/api/types';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
+import { downloadBlob, generateTimestampFilename } from '@/utils/browser';
 
 interface BulkDownloadParams {
   selectedImages: Set<number>;
@@ -12,16 +13,6 @@ export const useBulkDownload = () => {
   const [bulkDownloadLoading, setBulkDownloadLoading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
 
-  const downloadBlob = (blob: Blob, fileName: string) => {
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
-  };
 
   const handleBulkDownloadWithEffects = async (
     params: BulkDownloadParams,
@@ -45,23 +36,11 @@ export const useBulkDownload = () => {
         try {
           setDownloadProgress(`효과 적용 중... (${index + 1}/${selectedResults.length})`);
 
-          const { applyFrameAndFilterToImage, FRAME_STYLES, FILTER_STYLES } = await import('@/shared/lib/frame-filter');
+          const { applyFrameAndFilterToImage, resolveFrame, resolveFilter } = await import('@/shared/lib/frame-filter');
 
           // 랜덤 액자/필터 선택
-          let actualFrame = options.frame;
-          let actualFilter = options.filter;
-
-          if (options.frame.id === 'random') {
-            // 'none'과 'random'을 제외한 실제 액자 중에서 랜덤 선택
-            const realFrames = FRAME_STYLES.filter(f => f.id !== 'none' && f.id !== 'random');
-            actualFrame = realFrames[Math.floor(Math.random() * realFrames.length)]!;
-          }
-
-          if (options.filter.id === 'random') {
-            // 'none'과 'random'을 제외한 실제 필터 중에서 랜덤 선택
-            const realFilters = FILTER_STYLES.filter(f => f.id !== 'none' && f.id !== 'random');
-            actualFilter = realFilters[Math.floor(Math.random() * realFilters.length)]!;
-          }
+          const actualFrame = resolveFrame(options.frame);
+          const actualFilter = resolveFilter(options.filter);
 
           const actualOptions = {
             ...options,
@@ -104,7 +83,7 @@ export const useBulkDownload = () => {
     }
 
     const blob = await response.blob();
-    const fileName = `images_with_effects_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`;
+    const fileName = generateTimestampFilename('images_with_effects');
     downloadBlob(blob, fileName);
 
     setDownloadProgress('완료! 효과 적용된 이미지 다운로드 완료');
@@ -148,8 +127,8 @@ export const useBulkDownload = () => {
     const blob = await response.blob();
     const contentDisposition = response.headers.get('Content-Disposition');
     const fileName = contentDisposition
-      ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`)
-      : `images_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.zip`;
+      ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || generateTimestampFilename('images'))
+      : generateTimestampFilename('images');
 
     downloadBlob(blob, fileName);
 
