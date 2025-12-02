@@ -1,3 +1,6 @@
+import { isValidImageUrl } from '@/utils/url';
+import { shuffleArrayInPlace } from '@/utils/array';
+
 interface GoogleImageSearchResult {
   kind: string;
   title: string;
@@ -64,56 +67,6 @@ export interface ProcessedImageResult {
   imageUrl: string;
 }
 
-const isValidImageUrl = (url: string, mime?: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname.toLowerCase();
-
-    // 1. MIME 타입 체크
-    if (mime) {
-      const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
-      if (!validMimes.includes(mime.toLowerCase())) {
-        console.log(`⚠️❌ MIME 타입 거부!! ${mime} 🚫 ${url}`);
-        return false;
-      }
-    }
-
-    // 2. 파일 확장자 체크
-    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
-    const hasValidExtension = validExtensions.some(ext => pathname.endsWith(ext));
-
-    // 3. 블랙리스트 도메인 체크 (SNS 동영상 플랫폼만 차단)
-    const blacklistedDomains = [
-      'youtube.com',
-      'youtu.be',
-      'tiktok.com',
-      'twitch.tv'
-    ];
-
-    const isBlacklisted = blacklistedDomains.some(domain => urlObj.hostname.includes(domain));
-    if (isBlacklisted) {
-      console.log(`🚫💀 블랙리스트 도메인 거부!! ${urlObj.hostname} ❌ ${url}`);
-      return false;
-    }
-
-    // 4. 리다이렉트/프록시 URL만 차단
-    const suspiciousPatterns = [
-      'redirect.php',
-      'proxy.php',
-      'go.php'
-    ];
-
-    const hasSuspiciousPattern = suspiciousPatterns.some(pattern => pathname.includes(pattern));
-    if (hasSuspiciousPattern) {
-      console.log(`⚠️🔍 의심스러운 패턴 거부!! ${pathname} 🚫 ${url}`);
-      return false;
-    }
-
-    return hasValidExtension;
-  } catch {
-    return false;
-  }
-};
 
 export interface ImageSearchResponse {
   results: ProcessedImageResult[];
@@ -254,10 +207,7 @@ export const getGoogleImageResults = async (
     let finalResults = allResults;
 
     if (sortOrder === 'random') {
-      for (let i = finalResults.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [finalResults[i], finalResults[j]] = [finalResults[j]!, finalResults[i]!];
-      }
+      shuffleArrayInPlace(finalResults);
       console.log(`🎲✨ Fisher-Yates 셔플 적용!! ${finalResults.length}개 항목 섞었다!! 🔥💨`);
 
       finalResults = finalResults.slice(0, numberOfResults);
