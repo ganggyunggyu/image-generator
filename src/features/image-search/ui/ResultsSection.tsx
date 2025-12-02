@@ -100,7 +100,7 @@ export const ResultsSection: React.FC = () => {
       )}>
         {results.map((result, index) => (
           <ImageCard
-            key={index}
+            key={`${result.link}-${index}`}
             image={result}
             index={index}
             isSelected={selectedImages.has(index)}
