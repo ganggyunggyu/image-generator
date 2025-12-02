@@ -36,6 +36,9 @@ export const getRealFilterStyles = (): FilterStyle[] => {
  */
 export const selectRandomFrame = (): FrameStyle => {
   const realFrames = getRealFrameStyles();
+  if (realFrames.length === 0) {
+    throw new Error('사용 가능한 프레임이 없습니다');
+  }
   return realFrames[Math.floor(Math.random() * realFrames.length)]!;
 };
 
@@ -52,6 +55,9 @@ export const selectRandomFrame = (): FrameStyle => {
  */
 export const selectRandomFilter = (): FilterStyle => {
   const realFilters = getRealFilterStyles();
+  if (realFilters.length === 0) {
+    throw new Error('사용 가능한 필터가 없습니다');
+  }
   return realFilters[Math.floor(Math.random() * realFilters.length)]!;
 };
 

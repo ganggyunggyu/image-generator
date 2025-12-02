@@ -58,13 +58,20 @@ export const useBulkDownload = () => {
 
     try {
       const selectedResults = Array.from(selectedImages)
-        .filter(index => results[index])
-        .map(index => ({
-          url: results[index]!.link,
-          title: results[index]!.title,
-          width: results[index]!.image.width,
-          height: results[index]!.image.height,
-        }));
+        .map(index => {
+          const result = results[index];
+          if (!result) {
+            console.error(`❌ Invalid index: ${index}`);
+            return null;
+          }
+          return {
+            url: result.link,
+            title: result.title,
+            width: result.image.width,
+            height: result.image.height,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
 
       setDownloadProgress(`${selectedResults.length}개 이미지 다운로드 중...`);
 

@@ -101,6 +101,8 @@ export const getGoogleImageResults = async (
   console.log(`🔍🚀 이미지 검색 요청!! "${query}" (${numberOfResults}개 요청, ${sortOrder} 순서) 🔥💨`);
   console.log(`🎲✨ ${sortOrder === 'random' ? '랜덤' : '순차'} 모드!! ${resultsNeeded}개 수집 예정, ${requestsNeeded}번 API 호출 💫`);
 
+  const usedIndices = new Set<number>();
+
   try {
     for (let i = 0; i < requestsNeeded; i++) {
       // 랜덤 모드일 때는 시작 인덱스를 랜덤하게 선택
@@ -108,8 +110,18 @@ export const getGoogleImageResults = async (
       if (sortOrder === 'random') {
         // 각 배치마다 다른 랜덤 시작점 (1-91 사이, 3번만 호출)
         const randomStartOptions = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
-        startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)]!;
-        console.log(`🎲🔥 랜덤 배치!! ${i + 1}/3 startIndex=${startIndex} 💨`);
+        if (randomStartOptions.length === 0) {
+          throw new Error('랜덤 시작 옵션이 비어있습니다');
+        }
+
+        let attempts = 0;
+        do {
+          startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)]!;
+          attempts++;
+        } while (usedIndices.has(startIndex) && attempts < 10);
+
+        usedIndices.add(startIndex);
+        console.log(`🎲🔥 랜덤 배치!! ${i + 1}/3 startIndex=${startIndex} (시도: ${attempts}회) 💨`);
       }
 
       const currentBatchSize = Math.min(10, resultsNeeded - allResults.length);

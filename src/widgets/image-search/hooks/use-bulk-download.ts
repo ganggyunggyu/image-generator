@@ -20,14 +20,21 @@ export const useBulkDownload = () => {
   ) => {
     const { selectedImages, results, query } = params;
     const selectedResults = Array.from(selectedImages)
-      .filter(index => results[index])
-      .map(index => ({
-        url: results[index]!.link,
-        title: results[index]!.title,
-        width: results[index]!.image.width,
-        height: results[index]!.image.height,
-        imageUrl: results[index]!.imageUrl,
-      }));
+      .map(index => {
+        const result = results[index];
+        if (!result) {
+          console.error(`❌ Invalid index: ${index}`);
+          return null;
+        }
+        return {
+          url: result.link,
+          title: result.title,
+          width: result.image.width,
+          height: result.image.height,
+          imageUrl: result.imageUrl,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     setDownloadProgress(`효과 적용 중... (${options.frame.name} + ${options.filter.name})`);
 
@@ -92,14 +99,21 @@ export const useBulkDownload = () => {
   const handleBulkDownloadBasic = async (params: BulkDownloadParams) => {
     const { selectedImages, results, query } = params;
     const selectedResults = Array.from(selectedImages)
-      .filter(index => results[index])
-      .map(index => ({
-        url: results[index]!.link,
-        title: results[index]!.title,
-        width: results[index]!.image.width,
-        height: results[index]!.image.height,
-        imageUrl: results[index]!.imageUrl,
-      }));
+      .map(index => {
+        const result = results[index];
+        if (!result) {
+          console.error(`❌ Invalid index: ${index}`);
+          return null;
+        }
+        return {
+          url: result.link,
+          title: result.title,
+          width: result.image.width,
+          height: result.image.height,
+          imageUrl: result.imageUrl,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     setDownloadProgress(`${selectedResults.length}개 이미지 다운로드 중...`);
 

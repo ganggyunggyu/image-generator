@@ -12,6 +12,8 @@ const VALID_IMAGE_MIMES = [
   'image/bmp',
 ] as const;
 
+type ValidImageMime = typeof VALID_IMAGE_MIMES[number];
+
 /** 지원하는 이미지 파일 확장자 */
 const VALID_IMAGE_EXTENSIONS = [
   '.jpg',
@@ -57,7 +59,8 @@ export const isValidImageUrl = (url: string, mime?: string): boolean => {
 
     // 1. MIME 타입 체크
     if (mime) {
-      if (!VALID_IMAGE_MIMES.includes(mime.toLowerCase() as any)) {
+      const lowerMime = mime.toLowerCase();
+      if (!VALID_IMAGE_MIMES.includes(lowerMime as ValidImageMime)) {
         console.log(`⚠️❌ MIME 타입 거부!! ${mime} 🚫 ${url}`);
         return false;
       }

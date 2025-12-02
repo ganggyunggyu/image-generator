@@ -75,7 +75,13 @@ export async function GET(request: NextRequest) {
       quality: 90,
     });
 
-    const cacheSeconds = parseInt(process.env.IMAGE_CACHE_SECONDS || '3600', 10);
+    const DEFAULT_CACHE_SECONDS = 3600;
+    let cacheSeconds = parseInt(process.env.IMAGE_CACHE_SECONDS || String(DEFAULT_CACHE_SECONDS), 10);
+
+    if (isNaN(cacheSeconds) || cacheSeconds < 0) {
+      console.warn(`⚠️💥 Invalid IMAGE_CACHE_SECONDS: ${process.env.IMAGE_CACHE_SECONDS}, using default ${DEFAULT_CACHE_SECONDS}`);
+      cacheSeconds = DEFAULT_CACHE_SECONDS;
+    }
 
     const headers = new Headers({
       'Content-Type': 'image/webp',
