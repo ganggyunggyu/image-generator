@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ImageResult } from '@/shared/api/types';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
 import { downloadBlob, generateTimestampFilename } from '@/utils/browser';
@@ -12,6 +12,15 @@ interface BulkDownloadParams {
 export const useBulkDownload = () => {
   const [bulkDownloadLoading, setBulkDownloadLoading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
+  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+      }
+    };
+  }, []);
 
 
   const handleBulkDownloadWithEffects = async (
@@ -172,7 +181,7 @@ export const useBulkDownload = () => {
         await handleBulkDownloadBasic(params);
       }
 
-      setTimeout(() => {
+      clearTimerRef.current = setTimeout(() => {
         setDownloadProgress('');
       }, 3000);
 

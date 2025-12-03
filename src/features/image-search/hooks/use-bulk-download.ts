@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { useAtom } from 'jotai';
 import {
   searchResultsAtom,
@@ -16,6 +17,15 @@ export const useBulkDownload = () => {
   const [downloadProgress, setDownloadProgress] = useAtom(downloadProgressAtom);
   const [, setError] = useAtom(searchErrorAtom);
   const [query] = useAtom(searchQueryAtom);
+  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+      }
+    };
+  }, []);
 
   const toggleImageSelection = (index: number) => {
     const newSelected = new Set(selectedImages);
@@ -108,7 +118,7 @@ export const useBulkDownload = () => {
         `완료! 성공: ${successCount}개${failedCount && parseInt(failedCount) > 0 ? `, 실패: ${failedCount}개` : ''}`
       );
 
-      setTimeout(() => {
+      clearTimerRef.current = setTimeout(() => {
         setDownloadProgress('');
         setSelectedImages(new Set());
       }, 3000);

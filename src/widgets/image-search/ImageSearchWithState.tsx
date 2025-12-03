@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { SearchForm, LoadingSpinner, ErrorMessage } from '@/shared/ui';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
 import { useImageSearch } from './hooks/use-image-search';
@@ -9,6 +9,15 @@ import { useBulkDownload } from './hooks/use-bulk-download';
 import { SearchHeader, ResultsHeader, EmptyState, ResultsGrid } from './ui';
 
 export const ImageSearchWithState: React.FC = () => {
+  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+      }
+    };
+  }, []);
   const {
     query,
     setQuery,
@@ -67,7 +76,7 @@ export const ImageSearchWithState: React.FC = () => {
     if (errorMsg) {
       setError(errorMsg);
     } else {
-      setTimeout(() => {
+      clearTimerRef.current = setTimeout(() => {
         setSelectedImages(new Set());
       }, 3000);
     }
