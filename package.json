@@ -14,6 +14,7 @@
     "jotai": "latest",
     "jszip": "latest",
     "next": "latest",
+    "p-limit": "^7.2.0",
     "react": "latest",
     "react-dom": "latest",
     "sharp": "latest",

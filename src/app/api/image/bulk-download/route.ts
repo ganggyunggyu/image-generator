@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
+import pLimit from 'p-limit';
 import { fetchImageBuffer, convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
+
+const MAX_CONCURRENT_DOWNLOADS = 5;
 
 interface BulkDownloadRequest {
   images: Array<{
@@ -58,45 +61,49 @@ export async function POST(request: NextRequest) {
     }
 
     const zip = new JSZip();
-    const downloadPromises = body.images.map(async (imageData, index) => {
-      try {
-        const decodedUrl = decodeURIComponent(imageData.url);
-        console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
+    const limit = pLimit(MAX_CONCURRENT_DOWNLOADS);
 
-        let finalBuffer: Buffer;
+    const downloadPromises = body.images.map((imageData, index) =>
+      limit(async () => {
+        try {
+          const decodedUrl = decodeURIComponent(imageData.url);
+          console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
 
-        const imageBuffer = await fetchImageBuffer(decodedUrl);
-        finalBuffer = await convertToWebp(imageBuffer, {
-          width: imageData.width,
-          height: imageData.height,
-          quality: 90,
-        });
+          let finalBuffer: Buffer;
 
-        const effectSuffix = hasEffects ? `_${body.effectOptions?.frame.id}_${body.effectOptions?.filter.id}` : '';
-        const fileName = generateSanitizedFilename({
-          title: imageData.title,
-          index,
-          effectSuffix,
-        });
+          const imageBuffer = await fetchImageBuffer(decodedUrl);
+          finalBuffer = await convertToWebp(imageBuffer, {
+            width: imageData.width,
+            height: imageData.height,
+            quality: 90,
+          });
 
-        zip.file(fileName, finalBuffer);
+          const effectSuffix = hasEffects ? `_${body.effectOptions?.frame.id}_${body.effectOptions?.filter.id}` : '';
+          const fileName = generateSanitizedFilename({
+            title: imageData.title,
+            index,
+            effectSuffix,
+          });
 
-        return {
-          success: true,
-          fileName,
-          originalTitle: imageData.title,
-        };
-      } catch (error) {
-        console.error(`❌💥 이미지 처리 실패!! ${index + 1} 😭🔥 ${imageData.title}`, error);
+          zip.file(fileName, finalBuffer);
 
-        return {
-          success: false,
-          fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_FAILED.txt`,
-          originalTitle: imageData.title,
-          error: error instanceof Error ? error.message : '알 수 없는 오류',
-        };
-      }
-    });
+          return {
+            success: true,
+            fileName,
+            originalTitle: imageData.title,
+          };
+        } catch (error) {
+          console.error(`❌💥 이미지 처리 실패!! ${index + 1} 😭🔥 ${imageData.title}`, error);
+
+          return {
+            success: false,
+            fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_FAILED.txt`,
+            originalTitle: imageData.title,
+            error: error instanceof Error ? error.message : '알 수 없는 오류',
+          };
+        }
+      })
+    );
 
     const results = await Promise.all(downloadPromises);
 

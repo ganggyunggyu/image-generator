@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
+import pLimit from 'p-limit';
 import { convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
+
+const MAX_CONCURRENT_DOWNLOADS = 5;
 
 interface ProcessedBulkDownloadRequest {
   processedImages: Array<{
@@ -57,61 +60,62 @@ export async function POST(request: NextRequest) {
     console.log(`🎨✨ 효과 적용 일괄 다운로드 시작!! ${body.processedImages.length}개 이미지 (${frame.name} + ${filter.name}) 🚀💫`);
 
     const zip = new JSZip();
-    const downloadPromises = body.processedImages.map(async (imageData, index) => {
-      try {
-        console.log(`📦✨ 처리된 이미지 추가 중!! ${index + 1}/${body.processedImages.length} 🔥💨 ${imageData.title}`);
+    const limit = pLimit(MAX_CONCURRENT_DOWNLOADS);
 
-        let imageBuffer: Buffer;
+    const downloadPromises = body.processedImages.map((imageData, index) =>
+      limit(async () => {
+        try {
+          console.log(`📦✨ 처리된 이미지 추가 중!! ${index + 1}/${body.processedImages.length} 🔥💨 ${imageData.title}`);
 
-        if (imageData.processedDataUrl) {
-          // 효과 적용된 데이터 URL을 Buffer로 변환 후 WebP 고품질로 변환
-          const base64Data = imageData.processedDataUrl.split(',')[1];
-          if (!base64Data) {
-            throw new Error('base64 데이터가 없습니다');
+          let imageBuffer: Buffer;
+
+          if (imageData.processedDataUrl) {
+            const base64Data = imageData.processedDataUrl.split(',')[1];
+            if (!base64Data) {
+              throw new Error('base64 데이터가 없습니다');
+            }
+            const originalBuffer = Buffer.from(base64Data, 'base64');
+
+            imageBuffer = await convertToWebp(originalBuffer, {
+              width: 1200,
+              height: 1200,
+              quality: 90,
+            });
+          } else {
+            console.warn(`⚠️💥 효과 적용된 데이터가 없어서 건너뜀!! 😭 ${imageData.title}`);
+            return {
+              success: false,
+              fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_NO_EFFECT.txt`,
+              originalTitle: imageData.title,
+              error: '효과 적용된 데이터가 없습니다',
+            };
           }
-          const originalBuffer = Buffer.from(base64Data, 'base64');
 
-          // 모든 이미지를 1200x1200으로 통일
-          imageBuffer = await convertToWebp(originalBuffer, {
-            width: 1200,
-            height: 1200,
-            quality: 90,
+          const fileName = generateSanitizedFilename({
+            title: imageData.title,
+            index,
+            effectSuffix: `_${frame.id}_${filter.id}`,
           });
-        } else {
-          // 효과 적용 실패한 경우 원본 사용 (이 경우는 거의 없을 것)
-          console.warn(`⚠️💥 효과 적용된 데이터가 없어서 건너뜀!! 😭 ${imageData.title}`);
+
+          zip.file(fileName, imageBuffer);
+
+          return {
+            success: true,
+            fileName,
+            originalTitle: imageData.title,
+          };
+        } catch (error) {
+          console.error(`❌💥 처리된 이미지 추가 실패!! 박살났다!! ${index + 1} 😭🔥 ${imageData.title}`, error);
+
           return {
             success: false,
-            fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_NO_EFFECT.txt`,
+            fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_FAILED.txt`,
             originalTitle: imageData.title,
-            error: '효과 적용된 데이터가 없습니다',
+            error: error instanceof Error ? error.message : '알 수 없는 오류',
           };
         }
-
-        const fileName = generateSanitizedFilename({
-          title: imageData.title,
-          index,
-          effectSuffix: `_${frame.id}_${filter.id}`,
-        });
-
-        zip.file(fileName, imageBuffer);
-
-        return {
-          success: true,
-          fileName,
-          originalTitle: imageData.title,
-        };
-      } catch (error) {
-        console.error(`❌💥 처리된 이미지 추가 실패!! 박살났다!! ${index + 1} 😭🔥 ${imageData.title}`, error);
-
-        return {
-          success: false,
-          fileName: `${String(index + 1).padStart(3, '0')}_${imageData.title}_FAILED.txt`,
-          originalTitle: imageData.title,
-          error: error instanceof Error ? error.message : '알 수 없는 오류',
-        };
-      }
-    });
+      })
+    );
 
     const results = await Promise.all(downloadPromises);
 
