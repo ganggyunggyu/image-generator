@@ -7,4 +7,6 @@ export {
   selectedImagesAtom,
   bulkDownloadLoadingAtom,
   downloadProgressAtom,
+  imageCountAtom,
+  sortOrderAtom,
 } from './store';

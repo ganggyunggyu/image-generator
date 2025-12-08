@@ -7,6 +7,8 @@ import {
   totalResultsAtom,
   selectedImagesAtom,
   downloadProgressAtom,
+  imageCountAtom,
+  sortOrderAtom,
 } from '@/entities/image';
 import { SearchResponse } from '@/shared/api/types';
 
@@ -18,6 +20,8 @@ export const useImageSearch = () => {
   const [totalResults, setTotalResults] = useAtom(totalResultsAtom);
   const [selectedImages, setSelectedImages] = useAtom(selectedImagesAtom);
   const [downloadProgress, setDownloadProgress] = useAtom(downloadProgressAtom);
+  const [imageCount, setImageCount] = useAtom(imageCountAtom);
+  const [sortOrder, setSortOrder] = useAtom(sortOrderAtom);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +38,7 @@ export const useImageSearch = () => {
     setDownloadProgress('');
 
     try {
-      const searchUrl = `/api/image/search?q=${encodeURIComponent(query.trim())}&n=10`;
+      const searchUrl = `/api/image/search?q=${encodeURIComponent(query.trim())}&n=${imageCount}&sortOrder=${sortOrder}`;
       const response = await fetch(searchUrl);
       const data: SearchResponse = await response.json();
 
@@ -43,6 +47,7 @@ export const useImageSearch = () => {
       }
 
       if (data.data) {
+        console.log(`🚀🔥 검색 결과 개쩐다!! ${data.data.results.length}개 받았음!! 🎯💯 (${sortOrder} 순서) 🌟`);
         setResults(data.data.results);
         setTotalResults(data.data.totalResults);
       }
@@ -78,6 +83,10 @@ export const useImageSearch = () => {
     totalResults,
     selectedImages,
     downloadProgress,
+    imageCount,
+    setImageCount,
+    sortOrder,
+    setSortOrder,
     handleSearch,
     handleImageClick,
     handleDownload,

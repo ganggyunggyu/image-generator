@@ -16,3 +16,7 @@ export const selectedImagesAtom = atom<Set<number>>(new Set<number>());
 export const bulkDownloadLoadingAtom = atom<boolean>(false);
 
 export const downloadProgressAtom = atom<string>('');
+
+export const imageCountAtom = atom<number>(10);
+
+export const sortOrderAtom = atom<'original' | 'random'>('random');

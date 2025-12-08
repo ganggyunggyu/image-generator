@@ -1,100 +1,36 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { SearchForm, LoadingSpinner, ErrorMessage } from '@/shared/ui';
-import { DownloadOptions } from '@/shared/lib/frame-filter';
-import { useImageSearch } from './hooks/use-image-search';
-import { useImageSelection } from './hooks/use-image-selection';
-import { useBulkDownload } from './hooks/use-bulk-download';
+import { useImageSearch, useBulkDownload } from '@/features/image-search';
 import { SearchHeader, ResultsHeader, EmptyState, ResultsGrid } from './ui';
 
 export const ImageSearchWithState: React.FC = () => {
-  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (clearTimerRef.current) {
-        clearTimeout(clearTimerRef.current);
-      }
-    };
-  }, []);
   const {
     query,
     setQuery,
     results,
     loading,
     error,
-    setError,
     totalResults,
     imageCount,
     setImageCount,
     sortOrder,
     setSortOrder,
     handleSearch,
+    handleImageClick,
+    handleDownload,
   } = useImageSearch();
 
   const {
     selectedImages,
+    bulkDownloadLoading,
+    downloadProgress,
     toggleImageSelection,
     selectAllImages,
     clearSelection,
-    setSelectedImages,
-  } = useImageSelection(results.length);
-
-  const { bulkDownloadLoading, downloadProgress, handleBulkDownload } =
-    useBulkDownload();
-
-  const handleToggleSelection = (index: number) => {
-    const errorMsg = toggleImageSelection(index);
-    if (errorMsg) {
-      setError(errorMsg);
-    } else {
-      setError(null);
-    }
-  };
-
-  const handleSelectAll = () => {
-    const errorMsg = selectAllImages();
-    if (errorMsg) {
-      setError(errorMsg);
-    } else {
-      setError(null);
-    }
-  };
-
-  const handleClearSelection = () => {
-    clearSelection();
-    setError(null);
-  };
-
-  const handleBulkDownloadWrapper = async (options?: DownloadOptions) => {
-    const errorMsg = await handleBulkDownload(
-      { selectedImages, results, query },
-      options
-    );
-
-    if (errorMsg) {
-      setError(errorMsg);
-    } else {
-      clearTimerRef.current = setTimeout(() => {
-        setSelectedImages(new Set());
-      }, 3000);
-    }
-  };
-
-  const handleImageClick = (imageUrl: string, title: string) => {
-    console.log('👆✨ 이미지 클릭했다!! 🎨🔥', title, '🌐', imageUrl);
-    window.open(imageUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDownload = (imageUrl: string, title: string) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '')}.webp`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+    handleBulkDownload,
+  } = useBulkDownload();
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -122,9 +58,9 @@ export const ImageSearchWithState: React.FC = () => {
               totalResults={totalResults}
               resultsCount={results.length}
               selectedCount={selectedImages.size}
-              onSelectAll={handleSelectAll}
-              onClearSelection={handleClearSelection}
-              onBulkDownload={handleBulkDownloadWrapper}
+              onSelectAll={selectAllImages}
+              onClearSelection={clearSelection}
+              onBulkDownload={handleBulkDownload}
               bulkDownloadLoading={bulkDownloadLoading}
               downloadProgress={downloadProgress}
             />
@@ -132,7 +68,7 @@ export const ImageSearchWithState: React.FC = () => {
             <ResultsGrid
               results={results}
               selectedImages={selectedImages}
-              onToggleSelect={handleToggleSelection}
+              onToggleSelect={toggleImageSelection}
               onImageClick={handleImageClick}
               onDownload={handleDownload}
             />
