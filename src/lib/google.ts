@@ -171,13 +171,7 @@ export const getGoogleImageResults = async (
       }
 
       const batchResults: ProcessedImageResult[] = data.items
-        .filter((item) => {
-          const isValid = isValidImageUrl(item.link, item.mime);
-          if (!isValid) {
-            console.log(`🚫❌ 이미지 URL 필터링!! ${item.title} 🔥 ${item.link}`);
-          }
-          return isValid;
-        })
+        .filter((item) => isValidImageUrl(item.link, item.mime))
         .map((item) => {
           const encodedImageUrl = encodeURIComponent(item.link);
           const imageUrl = `/api/image/proxy?src=${encodedImageUrl}`;
