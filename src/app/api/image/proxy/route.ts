@@ -83,11 +83,13 @@ export async function GET(request: NextRequest) {
       cacheSeconds = DEFAULT_CACHE_SECONDS;
     }
 
+    const safeOriginalUrl = encodeURI(decodedImageUrl);
+
     const headers = new Headers({
       'Content-Type': 'image/webp',
       'Content-Length': webpBuffer.length.toString(),
       'Cache-Control': `public, max-age=${cacheSeconds}, immutable`,
-      'X-Original-URL': decodedImageUrl,
+      'X-Original-URL': safeOriginalUrl,
       'X-Content-Size': webpBuffer.length.toString(),
     });
 
