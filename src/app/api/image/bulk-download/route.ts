@@ -134,12 +134,14 @@ export async function POST(request: NextRequest) {
     const sanitizedKeyword = sanitizeKeyword(body.keyword);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
     const zipFileName = sanitizedKeyword ? `${sanitizedKeyword}.zip` : `images_${timestamp}.zip`;
+    const asciiSafeZipName = zipFileName.replace(/[^\x20-\x7E]/g, '_') || 'images.zip';
+    const contentDisposition = `attachment; filename="${asciiSafeZipName}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`;
 
     console.log(`✅🎉 ZIP 생성 완료!! 개쩐다!! 🔥💯 ${zipBuffer.length} bytes 🌟`);
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${zipFileName}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
+      'Content-Disposition': contentDisposition,
       'Content-Length': zipBuffer.length.toString(),
       'X-Success-Count': successCount.toString(),
       'X-Failed-Count': failedCount.toString(),

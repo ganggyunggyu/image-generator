@@ -138,11 +138,13 @@ export async function POST(request: NextRequest) {
     const zipFileName = sanitizedKeyword
       ? `${sanitizedKeyword}.zip`
       : `images_${frame.id}_${filter.id}_${timestamp}.zip`;
+    const asciiSafeZipName = zipFileName.replace(/[^\x20-\x7E]/g, '_') || 'images.zip';
+    const contentDisposition = `attachment; filename="${asciiSafeZipName}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`;
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
       'Content-Length': zipBuffer.length.toString(),
-      'Content-Disposition': `attachment; filename="${zipFileName}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
+      'Content-Disposition': contentDisposition,
       'Cache-Control': 'no-cache',
       'X-Success-Count': successCount.toString(),
       'X-Failed-Count': failedCount.toString(),

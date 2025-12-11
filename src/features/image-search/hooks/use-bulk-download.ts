@@ -45,13 +45,8 @@ export const useBulkDownload = () => {
   };
 
   const selectAllImages = () => {
-    if (results.length > 30) {
-      setSelectedImages(new Set(Array.from({ length: 30 }, (_, i) => i)));
-      setError('최대 30개까지만 선택됩니다');
-    } else {
-      setSelectedImages(new Set(Array.from({ length: results.length }, (_, i) => i)));
-      setError(null);
-    }
+    const maxSelect = Math.min(results.length, 30);
+    setSelectedImages(new Set(Array.from({ length: maxSelect }, (_, i) => i)));
   };
 
   const clearSelection = () => {
