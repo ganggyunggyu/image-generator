@@ -5,38 +5,36 @@ export interface ConvertToWebpOptions {
   width?: number | undefined;
   height?: number | undefined;
   quality?: number;
+  trimWhiteBorder?: boolean;
 }
 
-const WHITE_THRESHOLD = 245;
-
 /**
- * 흰색(근처) 픽셀을 투명으로 변환합니다.
+ * 가장자리 여백을 제거합니다. 실패 시 원본 반환.
+ * sharp.trim()은 기본적으로 이미지 모서리 색상을 자동 감지합니다.
  */
-const convertWhiteToTransparent = async (imageBuffer: Buffer): Promise<Buffer> => {
-  const { data, info } = await sharp(imageBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+const tryTrimWhiteBorder = async (imageBuffer: Buffer): Promise<Buffer> => {
+  try {
+    const trimmed = await sharp(imageBuffer)
+      .trim({
+        threshold: 40,
+      })
+      .toBuffer();
 
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i]!;
-    const g = data[i + 1]!;
-    const b = data[i + 2]!;
+    const originalMeta = await sharp(imageBuffer).metadata();
+    const trimmedMeta = await sharp(trimmed).metadata();
 
-    if (r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD) {
-      data[i + 3] = 0;
+    if (trimmedMeta.width && trimmedMeta.height &&
+        trimmedMeta.width > 10 && trimmedMeta.height > 10) {
+      console.log(`✂️ 여백 제거: ${originalMeta.width}x${originalMeta.height} → ${trimmedMeta.width}x${trimmedMeta.height}`);
+      return trimmed;
     }
-  }
 
-  return sharp(data, {
-    raw: {
-      width: info.width,
-      height: info.height,
-      channels: 4,
-    },
-  })
-    .png()
-    .toBuffer();
+    console.log('⚠️ trim 결과가 너무 작음, 원본 사용');
+    return imageBuffer;
+  } catch (error) {
+    console.log('⚠️ trim 실패, 원본 사용:', error);
+    return imageBuffer;
+  }
 };
 
 export const convertToWebp = async (
@@ -46,7 +44,7 @@ export const convertToWebp = async (
   try {
     console.log('🔄✨ WebP 변환 시작한다!! 🚀💫');
 
-    const { width, height, quality = 90 } = options;
+    const { width, height, quality = 90, trimWhiteBorder = true } = options;
 
     const sharpImage = sharp(imageBuffer);
     const metadata = await sharpImage.metadata();
@@ -57,13 +55,14 @@ export const convertToWebp = async (
       height: metadata.height,
     });
 
+    const processedBuffer = trimWhiteBorder
+      ? await tryTrimWhiteBorder(imageBuffer)
+      : imageBuffer;
+
     const targetWidth = width || metadata.width;
     const targetHeight = height || metadata.height;
 
-    const transparentBuffer = await convertWhiteToTransparent(imageBuffer);
-
-    const webpBuffer = await sharp(transparentBuffer)
-      .trim()
+    const webpBuffer = await sharp(processedBuffer)
       .resize(targetWidth, targetHeight, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
