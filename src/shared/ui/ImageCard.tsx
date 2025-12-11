@@ -13,7 +13,6 @@ interface ImageCardProps {
   onToggleSelect: (index: number) => void;
   onImageClick: (imageUrl: string, title: string) => void;
   onDownload: (imageUrl: string, title: string) => void;
-  onLoadError?: (index: number) => void;
   className?: string;
 }
 
@@ -24,7 +23,6 @@ export const ImageCard: React.FC<ImageCardProps> = ({
   onToggleSelect,
   onImageClick,
   onDownload,
-  onLoadError,
   className,
 }) => {
   const [showDownloadModal, setShowDownloadModal] = React.useState(false);
@@ -58,7 +56,6 @@ export const ImageCard: React.FC<ImageCardProps> = ({
           onImageClick={() => onImageClick(image.imageUrl, image.title)}
           onSimpleDownload={handleSimpleDownload}
           onAdvancedDownload={handleAdvancedDownload}
-          onLoadError={() => onLoadError?.(index)}
         />
 
         <ImageInfo

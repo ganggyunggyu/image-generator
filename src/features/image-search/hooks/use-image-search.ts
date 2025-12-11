@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAtom } from 'jotai';
 import {
   searchQueryAtom,
@@ -11,6 +12,7 @@ import {
   sortOrderAtom,
 } from '@/entities/image';
 import { SearchResponse } from '@/shared/api/types';
+import { validateImages } from '@/utils/image/validate-browser';
 
 export const useImageSearch = () => {
   const [query, setQuery] = useAtom(searchQueryAtom);
@@ -22,6 +24,7 @@ export const useImageSearch = () => {
   const [downloadProgress, setDownloadProgress] = useAtom(downloadProgressAtom);
   const [imageCount, setImageCount] = useAtom(imageCountAtom);
   const [sortOrder, setSortOrder] = useAtom(sortOrderAtom);
+  const [validationProgress, setValidationProgress] = useState('');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +39,7 @@ export const useImageSearch = () => {
     setResults([]);
     setSelectedImages(new Set());
     setDownloadProgress('');
+    setValidationProgress('');
 
     try {
       const searchUrl = `/api/image/search?q=${encodeURIComponent(query.trim())}&n=${imageCount}&sortOrder=${sortOrder}`;
@@ -47,14 +51,23 @@ export const useImageSearch = () => {
       }
 
       if (data.data) {
-        console.log(`🚀🔥 검색 결과 개쩐다!! ${data.data.results.length}개 받았음!! 🎯💯 (${sortOrder} 순서) 🌟`);
-        setResults(data.data.results);
         setTotalResults(data.data.totalResults);
+        setValidationProgress(`이미지 검증 중... (0/${imageCount})`);
+
+        const validImages = await validateImages(
+          data.data.results,
+          imageCount,
+          (current, total) => {
+            setValidationProgress(`이미지 검증 중... (${current}/${total})`);
+          }
+        );
+
+        setResults(validImages);
+        setValidationProgress('');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다';
       setError(errorMessage);
-      console.error('❌💥 아이고난!! 검색 터졌다!! 🔥😱', err);
     } finally {
       setLoading(false);
     }
@@ -73,18 +86,6 @@ export const useImageSearch = () => {
     document.body.removeChild(link);
   };
 
-  const removeResult = (index: number) => {
-    setResults(prev => prev.filter((_, i) => i !== index));
-    setSelectedImages(prev => {
-      const newSet = new Set<number>();
-      prev.forEach(i => {
-        if (i < index) newSet.add(i);
-        else if (i > index) newSet.add(i - 1);
-      });
-      return newSet;
-    });
-  };
-
   return {
     query,
     setQuery,
@@ -95,6 +96,7 @@ export const useImageSearch = () => {
     totalResults,
     selectedImages,
     downloadProgress,
+    validationProgress,
     imageCount,
     setImageCount,
     sortOrder,
@@ -102,6 +104,5 @@ export const useImageSearch = () => {
     handleSearch,
     handleImageClick,
     handleDownload,
-    removeResult,
   };
 };

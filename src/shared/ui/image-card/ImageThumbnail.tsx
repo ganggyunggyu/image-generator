@@ -6,7 +6,6 @@ interface ImageThumbnailProps {
   onImageClick: () => void;
   onSimpleDownload: () => void;
   onAdvancedDownload: () => void;
-  onLoadError?: () => void;
 }
 
 export const ImageThumbnail = ({
@@ -15,7 +14,6 @@ export const ImageThumbnail = ({
   onImageClick,
   onSimpleDownload,
   onAdvancedDownload,
-  onLoadError,
 }: ImageThumbnailProps) => {
   return (
     <div className="aspect-square relative overflow-hidden bg-gray-50">
@@ -28,7 +26,6 @@ export const ImageThumbnail = ({
           "group-hover:scale-105"
         )}
         onClick={onImageClick}
-        onError={() => onLoadError?.()}
       />
 
       {/* 호버 오버레이 */}

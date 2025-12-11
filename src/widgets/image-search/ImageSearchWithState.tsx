@@ -13,6 +13,7 @@ export const ImageSearchWithState: React.FC = () => {
     loading,
     error,
     totalResults,
+    validationProgress,
     imageCount,
     setImageCount,
     sortOrder,
@@ -20,7 +21,6 @@ export const ImageSearchWithState: React.FC = () => {
     handleSearch,
     handleImageClick,
     handleDownload,
-    removeResult,
   } = useImageSearch();
 
   const {
@@ -49,7 +49,11 @@ export const ImageSearchWithState: React.FC = () => {
           onSortOrderChange={setSortOrder}
         />
 
-        {loading && <LoadingSpinner message="이미지를 검색하고 있습니다..." />}
+        {loading && (
+          <LoadingSpinner
+            message={validationProgress || '이미지를 검색하고 있습니다...'}
+          />
+        )}
 
         {error && <ErrorMessage error={error} title="검색 오류" />}
 
@@ -72,7 +76,6 @@ export const ImageSearchWithState: React.FC = () => {
               onToggleSelect={toggleImageSelection}
               onImageClick={handleImageClick}
               onDownload={handleDownload}
-              onLoadError={removeResult}
             />
           </>
         )}
