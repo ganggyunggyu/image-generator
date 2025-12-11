@@ -224,7 +224,7 @@ src/
 
 **Headers:**
 - `Content-Type`: application/zip
-- `Content-Disposition`: attachment; filename*=UTF-8''keyword_timestamp.zip
+- `Content-Disposition`: attachment; filename*=UTF-8''keyword.zip (검색어가 없으면 images_타임스탬프.zip)
 - `X-Success-Count`: 성공한 이미지 개수
 - `X-Failed-Count`: 실패한 이미지 개수
 
@@ -260,6 +260,9 @@ src/
 ```
 
 **Response:** ZIP 파일 (효과가 적용된 이미지 포함)
+
+**Headers:**
+- `Content-Disposition`: attachment; filename*=UTF-8''keyword.zip (검색어가 없으면 images_타임스탬프.zip)
 
 ## 환경 변수
 
