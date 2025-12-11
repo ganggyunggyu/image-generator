@@ -68,3 +68,27 @@ export const generateTimestampFilename = (
     .replace(/[:.]/g, '-');
   return `${prefix}_${timestamp}.${extension}`;
 };
+
+export const getFilenameFromContentDisposition = (
+  contentDisposition?: string | null
+): string | null => {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const encodedMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      return encodedMatch[1];
+    }
+  }
+
+  const plainMatch = contentDisposition.match(/filename\s*=\s*"?([^;"]+)"?/i);
+  if (plainMatch?.[1]) {
+    return plainMatch[1];
+  }
+
+  return null;
+};

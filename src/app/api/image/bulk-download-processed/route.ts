@@ -134,16 +134,15 @@ export async function POST(request: NextRequest) {
     console.log(`✅🎉 ZIP 파일 생성 완료!! 개쩐다!! 🔥💯 ${zipBuffer.length} bytes, 성공: ${successCount}, 실패: ${failedCount} 🌟`);
 
     const sanitizedKeyword = sanitizeKeyword(body.keyword);
-
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
     const zipFileName = sanitizedKeyword
-      ? `${sanitizedKeyword}_${frame.id}_${filter.id}_${timestamp}.zip`
+      ? `${sanitizedKeyword}.zip`
       : `images_${frame.id}_${filter.id}_${timestamp}.zip`;
 
     const headers = new Headers({
       'Content-Type': 'application/zip',
       'Content-Length': zipBuffer.length.toString(),
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
+      'Content-Disposition': `attachment; filename="${zipFileName}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`,
       'Cache-Control': 'no-cache',
       'X-Success-Count': successCount.toString(),
       'X-Failed-Count': failedCount.toString(),

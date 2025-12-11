@@ -1,1 +1,1 @@
-export { downloadBlob, downloadUrl, generateTimestampFilename } from './download';
+export { downloadBlob, downloadUrl, generateTimestampFilename, getFilenameFromContentDisposition } from './download';

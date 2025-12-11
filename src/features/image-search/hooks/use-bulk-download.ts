@@ -9,7 +9,8 @@ import {
   searchQueryAtom,
 } from '@/entities/image';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
-import { downloadBlob, generateTimestampFilename } from '@/utils/browser';
+import { downloadBlob, getFilenameFromContentDisposition } from '@/utils/browser';
+import { sanitizeKeyword } from '@/utils/image/filename';
 
 export const useBulkDownload = () => {
   const [results] = useAtom(searchResultsAtom);
@@ -77,6 +78,12 @@ export const useBulkDownload = () => {
       .filter((item): item is NonNullable<typeof item> => item !== null);
   };
 
+  const resolveZipFileName = (contentDisposition: string | null) => {
+    const parsedFileName = getFilenameFromContentDisposition(contentDisposition);
+    const fallbackKeyword = sanitizeKeyword(query) || 'images';
+    return parsedFileName || `${fallbackKeyword}.zip`;
+  };
+
   const handleBulkDownloadWithEffects = async (options: DownloadOptions) => {
     const selectedResults = getSelectedResults();
 
@@ -131,7 +138,8 @@ export const useBulkDownload = () => {
     }
 
     const blob = await response.blob();
-    const fileName = generateTimestampFilename('images_with_effects');
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const fileName = resolveZipFileName(contentDisposition);
     downloadBlob(blob, fileName);
 
     setDownloadProgress('완료! 효과 적용된 이미지 다운로드 완료');
@@ -163,10 +171,7 @@ export const useBulkDownload = () => {
 
     const blob = await response.blob();
     const contentDisposition = response.headers.get('Content-Disposition');
-    const fileName = contentDisposition
-      ? (contentDisposition.split('filename=')[1]?.replace(/"/g, '') || generateTimestampFilename('images'))
-      : generateTimestampFilename('images');
-
+    const fileName = resolveZipFileName(contentDisposition);
     downloadBlob(blob, fileName);
 
     const successCount = response.headers.get('X-Success-Count');
