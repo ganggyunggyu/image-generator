@@ -7,6 +7,38 @@ export interface ConvertToWebpOptions {
   quality?: number;
 }
 
+const WHITE_THRESHOLD = 245;
+
+/**
+ * 흰색(근처) 픽셀을 투명으로 변환합니다.
+ */
+const convertWhiteToTransparent = async (imageBuffer: Buffer): Promise<Buffer> => {
+  const { data, info } = await sharp(imageBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i]!;
+    const g = data[i + 1]!;
+    const b = data[i + 2]!;
+
+    if (r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD) {
+      data[i + 3] = 0;
+    }
+  }
+
+  return sharp(data, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: 4,
+    },
+  })
+    .png()
+    .toBuffer();
+};
+
 export const convertToWebp = async (
   imageBuffer: Buffer,
   options: ConvertToWebpOptions = {}
@@ -28,7 +60,10 @@ export const convertToWebp = async (
     const targetWidth = width || metadata.width;
     const targetHeight = height || metadata.height;
 
-    const webpBuffer = await sharp(imageBuffer)
+    const transparentBuffer = await convertWhiteToTransparent(imageBuffer);
+
+    const webpBuffer = await sharp(transparentBuffer)
+      .trim()
       .resize(targetWidth, targetHeight, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 },
