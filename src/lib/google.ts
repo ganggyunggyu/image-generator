@@ -1,3 +1,4 @@
+import pLimit from 'p-limit';
 import { isValidImageUrl } from '@/utils/url';
 import { shuffleArrayInPlace } from '@/utils/array';
 
@@ -65,6 +66,7 @@ export interface ProcessedImageResult {
     thumbnailLink: string;
   };
   imageUrl: string;
+  previewUrl?: string;
 }
 
 
@@ -74,6 +76,39 @@ export interface ImageSearchResponse {
   searchTime: number;
 }
 
+const SEARCH_CACHE_TTL_MS = 15 * 60 * 1000;
+const SEARCH_CACHE_MAX = 50;
+const RANDOM_START_POOL = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
+
+const searchCache = new Map<string, { expiresAt: number; payload: ImageSearchResponse }>();
+
+const getCacheKey = (query: string, numberOfResults: number, sortOrder: 'original' | 'random') => {
+  return `${query}::${numberOfResults}::${sortOrder}`;
+};
+
+const readCache = (key: string): ImageSearchResponse | null => {
+  const cached = searchCache.get(key);
+
+  if (!cached) return null;
+  if (cached.expiresAt < Date.now()) {
+    searchCache.delete(key);
+    return null;
+  }
+
+  return cached.payload;
+};
+
+const writeCache = (key: string, payload: ImageSearchResponse) => {
+  if (searchCache.size >= SEARCH_CACHE_MAX) {
+    searchCache.clear();
+  }
+
+  searchCache.set(key, {
+    payload,
+    expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+  });
+};
+
 export const getGoogleImageResults = async (
   query: string,
   numberOfResults: number = 10,
@@ -81,6 +116,13 @@ export const getGoogleImageResults = async (
 ): Promise<ImageSearchResponse> => {
   const googleApiKey = process.env.GOOGLE_API_KEY;
   const googleCseId = process.env.GOOGLE_CSE_ID;
+  const cacheKey = getCacheKey(query, numberOfResults, sortOrder);
+
+  const cached = readCache(cacheKey);
+  if (cached) {
+    console.log(`💾 캐시 적중!! "${query}" (${numberOfResults}, ${sortOrder})`);
+    return cached;
+  }
 
   if (!googleApiKey) {
     throw new Error('GOOGLE_API_KEY 환경변수가 설정되지 않았습니다');
@@ -94,112 +136,136 @@ export const getGoogleImageResults = async (
   let totalSearchTime = 0;
   let totalResultsCount = '0';
 
-  // 랜덤 모드일 때는 30개 수집해서 섯기 (API 할당량 고려)
-  const resultsNeeded = sortOrder === 'random' ? 30 : numberOfResults;
-  const requestsNeeded = Math.ceil(resultsNeeded / 10);
+  const baseNeeded = sortOrder === 'random'
+    ? Math.max(numberOfResults * 2, numberOfResults + 12, 40)
+    : Math.max(numberOfResults + 8, Math.ceil(numberOfResults * 1.25));
+  const bufferMultiplier = sortOrder === 'random' ? 1.2 : 1.1;
+  const rawResultsNeeded = Math.ceil(baseNeeded * bufferMultiplier);
+  const plannedRequests = Math.ceil(rawResultsNeeded / 10);
+  const maxRequests = Math.min(plannedRequests, 9);
+  const resultsNeeded = Math.min(rawResultsNeeded, maxRequests * 10);
 
   console.log(`🔍🚀 이미지 검색 요청!! "${query}" (${numberOfResults}개 요청, ${sortOrder} 순서) 🔥💨`);
-  console.log(`🎲✨ ${sortOrder === 'random' ? '랜덤' : '순차'} 모드!! ${resultsNeeded}개 수집 예정, ${requestsNeeded}번 API 호출 💫`);
+  console.log(`🎯 목표 ${resultsNeeded}개, 요청 ${maxRequests}번 (batch 최대 10개)`);
 
-  const usedIndices = new Set<number>();
+  const startIndices: number[] = [];
 
-  try {
-    for (let i = 0; i < requestsNeeded; i++) {
-      // 랜덤 모드일 때는 시작 인덱스를 랜덤하게 선택
-      let startIndex = i * 10 + 1;
-      if (sortOrder === 'random') {
-        // 각 배치마다 다른 랜덤 시작점 (1-91 사이, 3번만 호출)
-        const randomStartOptions = [1, 11, 21, 31, 41, 51, 61, 71, 81, 91];
-        if (randomStartOptions.length === 0) {
-          throw new Error('랜덤 시작 옵션이 비어있습니다');
-        }
+  if (sortOrder === 'random') {
+    const shuffledPool = [...RANDOM_START_POOL];
+    shuffleArrayInPlace(shuffledPool);
+    for (let i = 0; i < maxRequests && i < shuffledPool.length; i++) {
+      startIndices.push(shuffledPool[i]!);
+    }
+  } else {
+    for (let i = 0; i < maxRequests; i++) {
+      startIndices.push(i * 10 + 1);
+    }
+  }
 
-        let attempts = 0;
-        do {
-          startIndex = randomStartOptions[Math.floor(Math.random() * randomStartOptions.length)]!;
-          attempts++;
-        } while (usedIndices.has(startIndex) && attempts < 10);
+  const batches: Array<{ startIndex: number; num: number }> = [];
+  let remaining = resultsNeeded;
+  for (const startIndex of startIndices) {
+    if (remaining <= 0) break;
+    const num = Math.min(10, remaining);
+    batches.push({ startIndex, num });
+    remaining -= num;
+  }
 
-        usedIndices.add(startIndex);
-        console.log(`🎲🔥 랜덤 배치!! ${i + 1}/3 startIndex=${startIndex} (시도: ${attempts}회) 💨`);
-      }
+  if (batches.length === 0) {
+    return {
+      results: [],
+      totalResults: '0',
+      searchTime: 0,
+    };
+  }
 
-      const currentBatchSize = Math.min(10, resultsNeeded - allResults.length);
+  const fetchBatch = async (startIndex: number, num: number) => {
+    const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+    searchUrl.searchParams.set('key', googleApiKey);
+    searchUrl.searchParams.set('cx', googleCseId);
+    searchUrl.searchParams.set('q', query);
+    searchUrl.searchParams.set('searchType', 'image');
+    searchUrl.searchParams.set('num', num.toString());
+    searchUrl.searchParams.set('start', startIndex.toString());
+    searchUrl.searchParams.set('safe', 'active');
 
-      if (currentBatchSize <= 0) break;
+    console.log(`🌐🚀 Google API 호출!! startIndex=${startIndex}, num=${num}, ${sortOrder} 모드 🔥💨`);
 
-      const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-      searchUrl.searchParams.set('key', googleApiKey);
-      searchUrl.searchParams.set('cx', googleCseId);
-      searchUrl.searchParams.set('q', query);
-      searchUrl.searchParams.set('searchType', 'image');
-      searchUrl.searchParams.set('num', currentBatchSize.toString());
-      searchUrl.searchParams.set('start', startIndex.toString());
-      searchUrl.searchParams.set('safe', 'active');
+    const response = await fetch(searchUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ImageSearchBot/1.0)',
+      },
+    });
 
-      console.log(`🌐🚀 Google API 호출!! ${i + 1}/${requestsNeeded} (시작 인덱스: ${startIndex}, ${sortOrder} 모드) 🔥💨`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Google API 응답 오류: ${response.status} ${response.statusText} - ${errorText}`);
+    }
 
-      const response = await fetch(searchUrl.toString(), {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ImageSearchBot/1.0)',
-        },
+    const data: GoogleSearchResponse = await response.json();
+
+    const items: ProcessedImageResult[] = (data.items ?? [])
+      .filter(item => isValidImageUrl(item.link, item.mime))
+      .map(item => {
+        const encodedImageUrl = encodeURIComponent(item.link);
+        const imageUrl = `/api/image/proxy?src=${encodedImageUrl}`;
+        const previewUrl = item.image.thumbnailLink || item.link;
+
+        return {
+          title: item.title,
+          link: item.link,
+          image: {
+            contextLink: item.image.contextLink,
+            height: item.image.height,
+            width: item.image.width,
+            byteSize: item.image.byteSize,
+            thumbnailLink: item.image.thumbnailLink,
+          },
+          imageUrl,
+          previewUrl,
+        };
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`⚠️💥 Google API 응답 오류!! (배치 ${i + 1}) 😭 ${response.status} ${response.statusText}`);
+    return {
+      startIndex,
+      items,
+      totalResults: data.searchInformation?.totalResults,
+      searchTime: data.searchInformation?.searchTime ?? 0,
+    };
+  };
 
-        if (i === 0) {
-          throw new Error(
-            `Google API 응답 오류: ${response.status} ${response.statusText} - ${errorText}`
-          );
-        }
-        break;
+  const concurrency = sortOrder === 'random' ? 2 : 3;
+  const limit = pLimit(concurrency);
+
+  try {
+    const settledBatches = await Promise.allSettled(
+      batches.map(batch => limit(() => fetchBatch(batch.startIndex, batch.num)))
+    );
+
+    const fulfilled = settledBatches.filter(
+      (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof fetchBatch>>> =>
+        result.status === 'fulfilled'
+    );
+
+    if (fulfilled.length === 0) {
+      const rejected = settledBatches.find(result => result.status === 'rejected');
+      if (rejected && rejected.reason instanceof Error) {
+        throw new Error(`이미지 검색 실패: ${rejected.reason.message}`);
       }
+      throw new Error('이미지 검색 실패: 모든 요청이 실패했습니다');
+    }
 
-      const data: GoogleSearchResponse = await response.json();
+    const ordered = sortOrder === 'original'
+      ? fulfilled.sort((a, b) => a.value.startIndex - b.value.startIndex)
+      : fulfilled;
 
-      if (i === 0) {
-        totalResultsCount = data.searchInformation?.totalResults || '0';
+    for (const batch of ordered) {
+      totalSearchTime += batch.value.searchTime;
+      if (totalResultsCount === '0' && batch.value.totalResults) {
+        totalResultsCount = batch.value.totalResults;
       }
-      totalSearchTime += data.searchInformation?.searchTime || 0;
-
-      if (!data.items || data.items.length === 0) {
-        console.log(`⚠️🔍 배치 ${i + 1}에서 결과 없음!! 😭`);
-        break;
-      }
-
-      const batchResults: ProcessedImageResult[] = data.items
-        .filter((item) => isValidImageUrl(item.link, item.mime))
-        .map((item) => {
-          const encodedImageUrl = encodeURIComponent(item.link);
-          const imageUrl = `/api/image/proxy?src=${encodedImageUrl}`;
-
-          return {
-            title: item.title,
-            link: item.link,
-            image: {
-              contextLink: item.image.contextLink,
-              height: item.image.height,
-              width: item.image.width,
-              byteSize: item.image.byteSize,
-              thumbnailLink: item.image.thumbnailLink,
-            },
-            imageUrl,
-          };
-        });
-
-      allResults.push(...batchResults);
-      console.log(`✅💫 배치 ${i + 1} 완료!! ${batchResults.length}개 추가 🔥 (총 ${allResults.length}개) 🎯`);
-
-      if (allResults.length >= resultsNeeded) {
-        break;
-      }
-
-      if (i < requestsNeeded - 1) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+      allResults.push(...batch.value.items);
     }
 
     if (allResults.length === 0) {
@@ -210,24 +276,20 @@ export const getGoogleImageResults = async (
       };
     }
 
-    let finalResults = allResults;
+    let finalResults = sortOrder === 'random' ? shuffleArrayInPlace([...allResults]) : allResults;
+    finalResults = finalResults.slice(0, resultsNeeded);
 
-    if (sortOrder === 'random') {
-      shuffleArrayInPlace(finalResults);
-      console.log(`🎲✨ Fisher-Yates 셔플 적용!! ${finalResults.length}개 항목 섞었다!! 🔥💨`);
-
-      finalResults = finalResults.slice(0, numberOfResults);
-    } else {
-      finalResults = finalResults.slice(0, numberOfResults);
-    }
-
-    console.log(`✅🎉 Google API 성공!! 개쩐다!! 총 ${allResults.length}개 수집 → ${finalResults.length}개 반환 🔥💯🌟`);
-
-    return {
+    const payload: ImageSearchResponse = {
       results: finalResults,
       totalResults: totalResultsCount,
       searchTime: totalSearchTime,
     };
+
+    writeCache(cacheKey, payload);
+
+    console.log(`✅🎉 Google API 성공!! ${allResults.length}개 수집 → ${finalResults.length}개 반환 🔥💯🌟`);
+
+    return payload;
   } catch (error) {
     console.error('❌💀 Google API 호출 실패!! 완전 박살났다!! 🔥😱💥', error);
 

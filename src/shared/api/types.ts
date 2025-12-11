@@ -9,6 +9,7 @@ export interface ImageResult {
     thumbnailLink: string;
   };
   imageUrl: string;
+  previewUrl?: string;
 }
 
 export interface SearchResponse {
