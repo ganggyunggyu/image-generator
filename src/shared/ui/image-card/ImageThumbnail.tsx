@@ -6,6 +6,7 @@ interface ImageThumbnailProps {
   onImageClick: () => void;
   onSimpleDownload: () => void;
   onAdvancedDownload: () => void;
+  onLoadError?: () => void;
 }
 
 export const ImageThumbnail = ({
@@ -14,6 +15,7 @@ export const ImageThumbnail = ({
   onImageClick,
   onSimpleDownload,
   onAdvancedDownload,
+  onLoadError,
 }: ImageThumbnailProps) => {
   return (
     <div className="aspect-square relative overflow-hidden bg-gray-50">
@@ -26,17 +28,7 @@ export const ImageThumbnail = ({
           "group-hover:scale-105"
         )}
         onClick={onImageClick}
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const parent = target.parentElement;
-          if (parent && !parent.querySelector('.error-placeholder')) {
-            const placeholder = document.createElement('div');
-            placeholder.className = 'error-placeholder w-full h-full flex items-center justify-center bg-gray-100 text-gray-400';
-            placeholder.innerHTML = '<div class="text-center"><div class="text-xs font-medium">미리보기 불가능</div></div>';
-            parent.appendChild(placeholder);
-          }
-        }}
+        onError={() => onLoadError?.()}
       />
 
       {/* 호버 오버레이 */}

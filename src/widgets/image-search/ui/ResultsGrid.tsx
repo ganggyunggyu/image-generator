@@ -8,6 +8,7 @@ interface ResultsGridProps {
   onToggleSelect: (index: number) => void;
   onImageClick: (imageUrl: string, title: string) => void;
   onDownload: (imageUrl: string, title: string) => void;
+  onLoadError?: (index: number) => void;
 }
 
 export const ResultsGrid = ({
@@ -16,6 +17,7 @@ export const ResultsGrid = ({
   onToggleSelect,
   onImageClick,
   onDownload,
+  onLoadError,
 }: ResultsGridProps) => {
   return (
     <div className={cn(
@@ -24,13 +26,14 @@ export const ResultsGrid = ({
     )}>
       {results.map((result, index) => (
         <ImageCard
-          key={index}
+          key={result.link}
           image={result}
           index={index}
           isSelected={selectedImages.has(index)}
           onToggleSelect={onToggleSelect}
           onImageClick={onImageClick}
           onDownload={onDownload}
+          onLoadError={onLoadError}
         />
       ))}
     </div>

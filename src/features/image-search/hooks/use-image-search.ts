@@ -73,6 +73,18 @@ export const useImageSearch = () => {
     document.body.removeChild(link);
   };
 
+  const removeResult = (index: number) => {
+    setResults(prev => prev.filter((_, i) => i !== index));
+    setSelectedImages(prev => {
+      const newSet = new Set<number>();
+      prev.forEach(i => {
+        if (i < index) newSet.add(i);
+        else if (i > index) newSet.add(i - 1);
+      });
+      return newSet;
+    });
+  };
+
   return {
     query,
     setQuery,
@@ -90,5 +102,6 @@ export const useImageSearch = () => {
     handleSearch,
     handleImageClick,
     handleDownload,
+    removeResult,
   };
 };
