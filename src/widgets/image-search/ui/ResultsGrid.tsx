@@ -33,7 +33,7 @@ export const ResultsGrid = ({
           onToggleSelect={onToggleSelect}
           onImageClick={onImageClick}
           onDownload={onDownload}
-          onLoadError={onLoadError}
+          {...(onLoadError && { onLoadError })}
         />
       ))}
     </div>

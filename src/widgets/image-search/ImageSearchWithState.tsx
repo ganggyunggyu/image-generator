@@ -20,6 +20,7 @@ export const ImageSearchWithState: React.FC = () => {
     handleSearch,
     handleImageClick,
     handleDownload,
+    removeResult,
   } = useImageSearch();
 
   const {
@@ -71,6 +72,7 @@ export const ImageSearchWithState: React.FC = () => {
               onToggleSelect={toggleImageSelection}
               onImageClick={handleImageClick}
               onDownload={handleDownload}
+              onLoadError={removeResult}
             />
           </>
         )}
