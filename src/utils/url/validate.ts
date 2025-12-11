@@ -24,10 +24,13 @@ const VALID_IMAGE_EXTENSIONS = [
   '.bmp',
 ] as const;
 
-/** 차단할 도메인 목록 (동영상 플랫폼) */
+/** 차단할 도메인 목록 (동영상 플랫폼 및 썸네일) */
 const BLACKLISTED_DOMAINS = [
   'youtube.com',
   'youtu.be',
+  'ytimg.com',
+  'i.ytimg.com',
+  'img.youtube.com',
   'tiktok.com',
   'twitch.tv',
 ] as const;
