@@ -57,21 +57,17 @@ export const isValidImageUrl = (url: string, mime?: string): boolean => {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname.toLowerCase();
 
-    // 1. MIME 타입 체크
-    if (mime) {
-      const lowerMime = mime.toLowerCase();
-      if (!VALID_IMAGE_MIMES.includes(lowerMime as ValidImageMime)) {
-        console.log(`⚠️❌ MIME 타입 거부!! ${mime} 🚫 ${url}`);
-        return false;
-      }
+    // 1. MIME 타입 체크 (유효하면 확장자 체크 건너뜀)
+    const hasValidMime = mime
+      ? VALID_IMAGE_MIMES.includes(mime.toLowerCase() as ValidImageMime)
+      : false;
+
+    if (mime && !hasValidMime) {
+      console.log(`⚠️❌ MIME 타입 거부!! ${mime} 🚫 ${url}`);
+      return false;
     }
 
-    // 2. 파일 확장자 체크
-    const hasValidExtension = VALID_IMAGE_EXTENSIONS.some(ext =>
-      pathname.endsWith(ext)
-    );
-
-    // 3. 블랙리스트 도메인 체크 (SNS 동영상 플랫폼만 차단)
+    // 2. 블랙리스트 도메인 체크 (SNS 동영상 플랫폼만 차단)
     const isBlacklisted = BLACKLISTED_DOMAINS.some(domain =>
       urlObj.hostname.includes(domain)
     );
@@ -81,7 +77,7 @@ export const isValidImageUrl = (url: string, mime?: string): boolean => {
       return false;
     }
 
-    // 4. 리다이렉트/프록시 URL만 차단
+    // 3. 리다이렉트/프록시 URL만 차단
     const hasSuspiciousPattern = SUSPICIOUS_PATTERNS.some(pattern =>
       pathname.includes(pattern)
     );
@@ -91,7 +87,13 @@ export const isValidImageUrl = (url: string, mime?: string): boolean => {
       return false;
     }
 
-    return hasValidExtension;
+    // 4. MIME이 유효하면 확장자 무시, 아니면 확장자로 판단
+    if (hasValidMime) {
+      return true;
+    }
+
+    // MIME 없으면 확장자 체크
+    return VALID_IMAGE_EXTENSIONS.some(ext => pathname.endsWith(ext));
   } catch {
     return false;
   }
