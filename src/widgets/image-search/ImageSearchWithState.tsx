@@ -51,7 +51,8 @@ export const ImageSearchWithState: React.FC = () => {
 
         {loading && (
           <LoadingSpinner
-            message={validationProgress || '이미지를 검색하고 있습니다...'}
+            message="이미지를 검색하고 있습니다..."
+            progress={validationProgress ?? undefined}
           />
         )}
 

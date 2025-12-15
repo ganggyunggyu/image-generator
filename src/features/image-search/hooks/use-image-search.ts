@@ -24,7 +24,7 @@ export const useImageSearch = () => {
   const [downloadProgress, setDownloadProgress] = useAtom(downloadProgressAtom);
   const [imageCount, setImageCount] = useAtom(imageCountAtom);
   const [sortOrder, setSortOrder] = useAtom(sortOrderAtom);
-  const [validationProgress, setValidationProgress] = useState('');
+  const [validationProgress, setValidationProgress] = useState<{ current: number; total: number } | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,7 @@ export const useImageSearch = () => {
     setResults([]);
     setSelectedImages(new Set());
     setDownloadProgress('');
-    setValidationProgress('');
+    setValidationProgress(null);
 
     try {
       const searchUrl = `/api/image/search?q=${encodeURIComponent(query.trim())}&n=${imageCount}&sortOrder=${sortOrder}`;
@@ -52,18 +52,18 @@ export const useImageSearch = () => {
 
       if (data.data) {
         setTotalResults(data.data.totalResults);
-        setValidationProgress(`이미지 검증 중... (0/${imageCount})`);
+        setValidationProgress({ current: 0, total: imageCount });
 
         const validImages = await validateImages(
           data.data.results,
           imageCount,
           (current, total) => {
-            setValidationProgress(`이미지 검증 중... (${current}/${total})`);
+            setValidationProgress({ current, total });
           }
         );
 
         setResults(validImages);
-        setValidationProgress('');
+        setValidationProgress(null);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다';
