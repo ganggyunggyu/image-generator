@@ -33,6 +33,18 @@ const BLACKLISTED_DOMAINS = [
   'img.youtube.com',
   'tiktok.com',
   'twitch.tv',
+  'naver.com',
+  'naver.me',
+  'blog.naver.com',
+  'namu.wiki',
+  'facebook.com',
+  'instagram.com',
+  'twitter.com',
+  'x.com',
+  'kakao.com',
+  'kakao.co.kr',
+  'kakaocdn.net',
+  'kream.co.kr',
 ] as const;
 
 /** 차단할 URL 패턴 (리다이렉트/프록시) */
