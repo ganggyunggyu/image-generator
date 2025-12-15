@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const imageUrl = searchParams.get('src');
     const widthParam = searchParams.get('w');
     const heightParam = searchParams.get('h');
+    const qualityParam = searchParams.get('q');
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -65,6 +66,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let quality: number | undefined;
+    if (qualityParam) {
+      quality = parseInt(qualityParam, 10);
+      if (isNaN(quality) || quality < 1 || quality > 100) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '품질(q)은 1-100 사이의 숫자여야 합니다',
+            message: 'Quality must be between 1 and 100',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     console.log(`🌐🚀 이미지 프록시 요청!! ${decodedImageUrl}${width || height ? ` (${width || 'auto'}x${height || 'auto'})` : ''} 🔥💨`);
 
     const imageBuffer = await fetchImageBuffer(decodedImageUrl);
@@ -72,7 +88,7 @@ export async function GET(request: NextRequest) {
     const webpBuffer = await convertToWebp(imageBuffer, {
       width,
       height,
-      quality: 90,
+      quality: quality ?? 92,
     });
 
     const DEFAULT_CACHE_SECONDS = 3600;

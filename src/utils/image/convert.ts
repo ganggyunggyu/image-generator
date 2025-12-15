@@ -44,7 +44,7 @@ export const convertToWebp = async (
   try {
     console.log('🔄✨ WebP 변환 시작한다!! 🚀💫');
 
-    const { width, height, quality = 85, trimWhiteBorder = true } = options;
+    const { width, height, quality = 92, trimWhiteBorder = true } = options;
 
     const sharpImage = sharp(imageBuffer);
     const metadata = await sharpImage.metadata();
@@ -73,6 +73,7 @@ export const convertToWebp = async (
         nearLossless: false,
         smartSubsample: true,
         effort: 3,
+        alphaQuality: clamp(quality, 1, 100),
       })
       .toBuffer();
 
