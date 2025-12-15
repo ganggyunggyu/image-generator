@@ -12,6 +12,7 @@ interface BulkDownloadRequest {
     title: string;
     width?: number;
     height?: number;
+    fallbackUrls?: string[];
   }>;
   effectOptions?: DownloadOptions;
   keyword?: string;
@@ -66,12 +67,35 @@ export async function POST(request: NextRequest) {
     const downloadPromises = body.images.map((imageData, index) =>
       limit(async () => {
         try {
-          const decodedUrl = decodeURIComponent(imageData.url);
+          const candidateUrls = [
+            decodeURIComponent(imageData.url),
+            ...(imageData.fallbackUrls || []).map(url => decodeURIComponent(url)),
+          ].filter(Boolean);
+
           console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
 
           let finalBuffer: Buffer;
 
-          const imageBuffer = await fetchImageBuffer(decodedUrl);
+          let imageBuffer: Buffer | null = null;
+          let lastFetchError: Error | null = null;
+
+          for (const candidate of candidateUrls) {
+            try {
+              imageBuffer = await fetchImageBuffer(candidate);
+              if (candidate !== candidateUrls[0]) {
+                console.log(`✅🎯 대체 URL로 성공!! ${candidate}`);
+              }
+              break;
+            } catch (fetchError) {
+              lastFetchError = fetchError instanceof Error ? fetchError : new Error('알 수 없는 오류');
+              console.warn(`⚠️💥 이미지 fetch 실패, 다음 후보로 진행!! ${candidate}`, lastFetchError.message);
+            }
+          }
+
+          if (!imageBuffer) {
+            throw new Error(lastFetchError?.message || '이미지 소스가 모두 실패했습니다');
+          }
+
           finalBuffer = await convertToWebp(imageBuffer, {
             width: imageData.width,
             height: imageData.height,

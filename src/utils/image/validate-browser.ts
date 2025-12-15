@@ -4,6 +4,11 @@
 
 interface ImageData {
   imageUrl: string;
+  previewUrl?: string;
+  link?: string;
+  image?: {
+    thumbnailLink?: string;
+  };
 }
 
 const DEFAULT_TIMEOUT_MS = 3000;
@@ -17,20 +22,47 @@ export const checkImageLoadable = <T extends ImageData>(
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<T | null> => {
   return new Promise(resolve => {
-    const img = new window.Image();
-    const timeout = setTimeout(() => {
-      resolve(null);
-    }, timeoutMs);
+    const candidates = [
+      image.imageUrl,
+      image.previewUrl,
+      image.image?.thumbnailLink,
+      image.link,
+    ].filter(Boolean) as string[];
 
-    img.onload = () => {
-      clearTimeout(timeout);
-      resolve(image);
+    const img = new window.Image();
+    let timeoutId: NodeJS.Timeout | null = null;
+    let currentIndex = 0;
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
     };
-    img.onerror = () => {
-      clearTimeout(timeout);
-      resolve(null);
+
+    const tryNext = () => {
+      if (currentIndex >= candidates.length) {
+        cleanup();
+        resolve(null);
+        return;
+      }
+
+      const src = candidates[currentIndex]!;
+      currentIndex += 1;
+
+      cleanup();
+      timeoutId = setTimeout(() => {
+        tryNext();
+      }, timeoutMs);
+
+      img.onload = () => {
+        cleanup();
+        resolve(image);
+      };
+      img.onerror = () => {
+        tryNext();
+      };
+      img.src = src;
     };
-    img.src = image.imageUrl;
+
+    tryNext();
   });
 };
 

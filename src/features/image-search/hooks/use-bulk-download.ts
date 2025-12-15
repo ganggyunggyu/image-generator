@@ -62,8 +62,16 @@ export const useBulkDownload = () => {
           console.error(`❌ Invalid index: ${index}`);
           return null;
         }
+        const candidates = [
+          result.imageUrl,
+          result.previewUrl,
+          result.image.thumbnailLink,
+          result.link,
+        ].filter(Boolean) as string[];
+
         return {
-          url: result.link,
+          url: candidates[0]!,
+          fallbackUrls: candidates.slice(1),
           title: result.title,
           width: result.image.width,
           height: result.image.height,

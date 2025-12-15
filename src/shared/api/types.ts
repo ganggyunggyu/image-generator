@@ -31,5 +31,6 @@ export interface BulkDownloadRequest {
     title: string;
     width?: number;
     height?: number;
+    fallbackUrls?: string[];
   }>;
 }

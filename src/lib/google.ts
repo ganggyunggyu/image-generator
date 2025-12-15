@@ -109,6 +109,83 @@ const writeCache = (key: string, payload: ImageSearchResponse) => {
   });
 };
 
+const hasImageSignature = (buffer: Buffer): boolean => {
+  if (buffer.length < 8) return false;
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return true; // JPEG
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return true; // PNG
+  if (buffer.toString('ascii', 0, 6) === 'GIF87a' || buffer.toString('ascii', 0, 6) === 'GIF89a') return true; // GIF
+  if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return true; // WebP
+  if (buffer[0] === 0x42 && buffer[1] === 0x4D) return true; // BMP
+  if (
+    (buffer[0] === 0x49 && buffer[1] === 0x49 && buffer[2] === 0x2A && buffer[3] === 0x00) ||
+    (buffer[0] === 0x4D && buffer[1] === 0x4D && buffer[2] === 0x00 && buffer[3] === 0x2A)
+  ) {
+    return true; // TIFF
+  }
+  return false;
+};
+
+const isLikelyImageContent = async (url: string): Promise<boolean> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Range': 'bytes=0-2048',
+        'Accept': 'image/webp,image/apng,image/jpeg,image/png,image/gif,image/*,*/*;q=0.5',
+        'User-Agent': 'Mozilla/5.0 (compatible; ImageSearchVerifier/1.0)',
+      },
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.startsWith('image/')) {
+      return true;
+    }
+
+    if (contentType.includes('text/html') || contentType.includes('text/plain') || contentType.includes('application/json')) {
+      return false;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return hasImageSignature(buffer);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const filterValidImageResults = async (
+  items: ProcessedImageResult[],
+  targetCount: number
+): Promise<ProcessedImageResult[]> => {
+  const valid: ProcessedImageResult[] = [];
+  const limit = pLimit(4);
+
+  await Promise.all(
+    items.map(item =>
+      limit(async () => {
+        if (valid.length >= targetCount) {
+          return;
+        }
+        const ok = await isLikelyImageContent(item.link);
+        if (ok && valid.length < targetCount) {
+          valid.push(item);
+        }
+      })
+    )
+  );
+
+  return valid.slice(0, targetCount);
+};
+
 export const getGoogleImageResults = async (
   query: string,
   numberOfResults: number = 10,
@@ -279,15 +356,21 @@ export const getGoogleImageResults = async (
     let finalResults = sortOrder === 'random' ? shuffleArrayInPlace([...allResults]) : allResults;
     finalResults = finalResults.slice(0, resultsNeeded);
 
+    const verifiedResults = await filterValidImageResults(finalResults, resultsNeeded);
+    const chosenResults = verifiedResults.length > 0 ? verifiedResults : finalResults;
+
     const payload: ImageSearchResponse = {
-      results: finalResults,
+      results: chosenResults.slice(0, resultsNeeded),
       totalResults: totalResultsCount,
       searchTime: totalSearchTime,
     };
 
-    writeCache(cacheKey, payload);
+    const shouldCache = payload.results.length >= Math.min(numberOfResults, resultsNeeded);
+    if (shouldCache) {
+      writeCache(cacheKey, payload);
+    }
 
-    console.log(`✅🎉 Google API 성공!! ${allResults.length}개 수집 → ${finalResults.length}개 반환 🔥💯🌟`);
+    console.log(`✅🎉 Google API 성공!! ${allResults.length}개 수집 → ${payload.results.length}개 반환 🔥💯🌟`);
 
     return payload;
   } catch (error) {
