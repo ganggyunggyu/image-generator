@@ -77,7 +77,12 @@ export const applyFrameAndFilterToImage = async (
     };
 
     img.onerror = () => {
-      reject(new Error('이미지를 로드할 수 없습니다'));
+      if (!imageUrl.includes('/api/image/proxy')) {
+        const proxyUrl = `/api/image/proxy?src=${encodeURIComponent(imageUrl)}`;
+        img.src = proxyUrl;
+      } else {
+        reject(new Error('이미지를 로드할 수 없습니다'));
+      }
     };
 
     img.src = imageUrl;

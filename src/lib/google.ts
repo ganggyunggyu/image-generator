@@ -214,12 +214,12 @@ export const getGoogleImageResults = async (
   let totalResultsCount = '0';
 
   const baseNeeded = sortOrder === 'random'
-    ? Math.max(numberOfResults * 2, numberOfResults + 12, 40)
-    : Math.max(numberOfResults + 8, Math.ceil(numberOfResults * 1.25));
-  const bufferMultiplier = sortOrder === 'random' ? 1.2 : 1.1;
+    ? Math.max(numberOfResults * 2.5, numberOfResults + 30, 90)
+    : Math.max(numberOfResults * 2, numberOfResults + 20, 90);
+  const bufferMultiplier = 1.0;
   const rawResultsNeeded = Math.ceil(baseNeeded * bufferMultiplier);
   const plannedRequests = Math.ceil(rawResultsNeeded / 10);
-  const maxRequests = Math.min(plannedRequests, 9);
+  const maxRequests = Math.min(plannedRequests, 10);
   const resultsNeeded = Math.min(rawResultsNeeded, maxRequests * 10);
 
   console.log(`🔍🚀 이미지 검색 요청!! "${query}" (${numberOfResults}개 요청, ${sortOrder} 순서) 🔥💨`);

@@ -44,7 +44,7 @@ export const convertToWebp = async (
   try {
     console.log('🔄✨ WebP 변환 시작한다!! 🚀💫');
 
-    const { width, height, quality = 92, trimWhiteBorder = true } = options;
+    const { width, height, quality = 92, trimWhiteBorder = false } = options;
 
     const sharpImage = sharp(imageBuffer);
     const metadata = await sharpImage.metadata();
