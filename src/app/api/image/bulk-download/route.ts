@@ -18,6 +18,28 @@ interface BulkDownloadRequest {
   keyword?: string;
 }
 
+const resolveSourceUrl = (candidateUrl: string): string => {
+  const fallbackOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  try {
+    const parsed = new URL(candidateUrl, fallbackOrigin);
+
+    if (parsed.pathname.startsWith('/api/image/proxy')) {
+      const proxiedSrc = parsed.searchParams.get('src');
+      if (proxiedSrc) {
+        const decoded = decodeURIComponent(proxiedSrc);
+        if (/^https?:\/\//i.test(decoded)) {
+          return decoded;
+        }
+      }
+    }
+
+    return parsed.toString();
+  } catch {
+    return candidateUrl;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body: BulkDownloadRequest = await request.json();
@@ -50,17 +72,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (body.images.length > 30) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '최대 30개까지만 다운로드할 수 있습니다',
-          message: 'Maximum 30 images allowed',
-        },
-        { status: 400 }
-      );
-    }
-
     const zip = new JSZip();
     const limit = pLimit(MAX_CONCURRENT_DOWNLOADS);
 
@@ -68,8 +79,8 @@ export async function POST(request: NextRequest) {
       limit(async () => {
         try {
           const candidateUrls = [
-            decodeURIComponent(imageData.url),
-            ...(imageData.fallbackUrls || []).map(url => decodeURIComponent(url)),
+            resolveSourceUrl(decodeURIComponent(imageData.url)),
+            ...(imageData.fallbackUrls || []).map(url => resolveSourceUrl(decodeURIComponent(url))),
           ].filter(Boolean);
 
           console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
@@ -97,9 +108,7 @@ export async function POST(request: NextRequest) {
           }
 
           finalBuffer = await convertToWebp(imageBuffer, {
-            width: imageData.width,
-            height: imageData.height,
-            quality: 90,
+            quality: 92,
           });
 
           const effectSuffix = hasEffects ? `_${body.effectOptions?.frame.id}_${body.effectOptions?.filter.id}` : '';

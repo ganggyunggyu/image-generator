@@ -17,6 +17,6 @@ export const bulkDownloadLoadingAtom = atom<boolean>(false);
 
 export const downloadProgressAtom = atom<string>('');
 
-export const imageCountAtom = atom<number>(10);
+export const imageCountAtom = atom<number>(50);
 
 export const sortOrderAtom = atom<'original' | 'random'>('random');

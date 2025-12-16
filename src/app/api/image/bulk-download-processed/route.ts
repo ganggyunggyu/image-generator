@@ -45,17 +45,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (body.processedImages.length > 30) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '최대 30개까지만 다운로드할 수 있습니다',
-          message: 'Maximum 30 images allowed',
-        },
-        { status: 400 }
-      );
-    }
-
     const { frame, filter } = body.effectOptions;
     console.log(`🎨✨ 효과 적용 일괄 다운로드 시작!! ${body.processedImages.length}개 이미지 (${frame.name} + ${filter.name}) 🚀💫`);
 
@@ -77,9 +66,7 @@ export async function POST(request: NextRequest) {
             const originalBuffer = Buffer.from(base64Data, 'base64');
 
             imageBuffer = await convertToWebp(originalBuffer, {
-              width: 1200,
-              height: 1200,
-              quality: 90,
+              quality: 92,
             });
           } else {
             console.warn(`⚠️💥 효과 적용된 데이터가 없어서 건너뜀!! 😭 ${imageData.title}`);

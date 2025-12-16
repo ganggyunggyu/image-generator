@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
 
     const numberOfResults = parseInt(numParam, 10);
 
-    if (isNaN(numberOfResults) || numberOfResults < 1 || numberOfResults > 30) {
+    if (isNaN(numberOfResults) || numberOfResults < 1) {
       return NextResponse.json(
         {
           success: false,
-          error: '결과 개수는 1-30 사이의 숫자여야 합니다',
-          message: 'Number of results must be between 1 and 30',
+          error: '결과 개수는 1 이상이어야 합니다',
+          message: 'Number of results must be at least 1',
         },
         { status: 400 }
       );

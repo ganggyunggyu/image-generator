@@ -14,8 +14,6 @@ export const ImageSearchWithState: React.FC = () => {
     error,
     totalResults,
     validationProgress,
-    imageCount,
-    setImageCount,
     sortOrder,
     setSortOrder,
     handleSearch,
@@ -43,8 +41,6 @@ export const ImageSearchWithState: React.FC = () => {
           onQueryChange={setQuery}
           onSubmit={handleSearch}
           loading={loading}
-          imageCount={imageCount}
-          onImageCountChange={setImageCount}
           sortOrder={sortOrder}
           onSortOrderChange={setSortOrder}
         />

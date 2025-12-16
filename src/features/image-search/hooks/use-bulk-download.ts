@@ -29,15 +29,33 @@ export const useBulkDownload = () => {
     };
   }, []);
 
+  const resolveDownloadUrl = (rawUrl: string) => {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+
+    try {
+      const parsed = new URL(rawUrl, base);
+
+      if (parsed.pathname.startsWith('/api/image/proxy')) {
+        const proxiedSrc = parsed.searchParams.get('src');
+        if (proxiedSrc) {
+          const decoded = decodeURIComponent(proxiedSrc);
+          if (/^https?:\/\//i.test(decoded)) {
+            return decoded;
+          }
+        }
+      }
+
+      return parsed.toString();
+    } catch {
+      return rawUrl;
+    }
+  };
+
   const toggleImageSelection = (index: number) => {
     const newSelected = new Set(selectedImages);
     if (newSelected.has(index)) {
       newSelected.delete(index);
     } else {
-      if (newSelected.size >= 30) {
-        setError('최대 30개까지만 선택할 수 있습니다');
-        return;
-      }
       newSelected.add(index);
     }
     setSelectedImages(newSelected);
@@ -45,8 +63,7 @@ export const useBulkDownload = () => {
   };
 
   const selectAllImages = () => {
-    const maxSelect = Math.min(results.length, 30);
-    setSelectedImages(new Set(Array.from({ length: maxSelect }, (_, i) => i)));
+    setSelectedImages(new Set(Array.from({ length: results.length }, (_, i) => i)));
   };
 
   const clearSelection = () => {
@@ -62,16 +79,19 @@ export const useBulkDownload = () => {
           console.error(`❌ Invalid index: ${index}`);
           return null;
         }
-        const candidates = [
+        const candidateList = [
+          result.link,
           result.imageUrl,
           result.previewUrl,
           result.image.thumbnailLink,
-          result.link,
-        ].filter(Boolean) as string[];
+        ]
+          .filter(Boolean)
+          .map(resolveDownloadUrl);
+        const uniqueCandidates = Array.from(new Set(candidateList));
 
         return {
-          url: candidates[0]!,
-          fallbackUrls: candidates.slice(1),
+          url: uniqueCandidates[0]!,
+          fallbackUrls: uniqueCandidates.slice(1),
           title: result.title,
           width: result.image.width,
           height: result.image.height,
