@@ -47,9 +47,9 @@ export const applyFilter = async (
 
     case 'dramatic':
       sharpImage = sharpImage
-        .modulate({ saturation: 1.3, brightness: 0.95 })
+        .modulate({ saturation: 1.3, brightness: 0.9 })
         .sharpen({ sigma: 1.5 })
-        .gamma(0.9);
+        .linear(1.2, -20);
       break;
   }
 
