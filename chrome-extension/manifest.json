@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Image Bulk Downloader",
+  "version": "1.0.0",
+  "description": "이미지 검색 후 필터/액자 적용하여 일괄 다운로드",
+  "permissions": ["sidePanel"],
+  "host_permissions": [
+    "https://image-generator-dsga.vercel.app/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

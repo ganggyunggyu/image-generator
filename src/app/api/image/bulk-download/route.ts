@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import pLimit from 'p-limit';
-import { fetchImageBuffer, convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
-import { DownloadOptions } from '@/shared/lib/frame-filter';
+import { fetchImageBuffer, convertToWebp, generateSanitizedFilename, sanitizeKeyword, applyEffects } from '@/utils/image';
+import { DownloadOptions, resolveFilter, resolveFrame } from '@/shared/lib/frame-filter';
 
 const MAX_CONCURRENT_DOWNLOADS = 5;
 
@@ -107,7 +107,15 @@ export async function POST(request: NextRequest) {
             throw new Error(lastFetchError?.message || '이미지 소스가 모두 실패했습니다');
           }
 
-          finalBuffer = await convertToWebp(imageBuffer, {
+          let processedBuffer = imageBuffer;
+
+          if (hasEffects && body.effectOptions) {
+            const actualFilter = resolveFilter(body.effectOptions.filter);
+            const actualFrame = resolveFrame(body.effectOptions.frame);
+            processedBuffer = await applyEffects(imageBuffer, actualFilter, actualFrame);
+          }
+
+          finalBuffer = await convertToWebp(processedBuffer, {
             quality: 92,
           });
 

@@ -6,3 +6,4 @@ export {
   sanitizeKeyword,
   type SanitizeFilenameOptions,
 } from './filename';
+export { applyEffects, applyFilter, applyFrame } from './effects';
