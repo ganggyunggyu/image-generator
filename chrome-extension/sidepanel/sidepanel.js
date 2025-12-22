@@ -3,9 +3,37 @@ import { FILTER_STYLES, FRAME_STYLES } from '../lib/constants.js';
 const API = 'https://image-generator-dsga.vercel.app';
 const $ = (id) => document.getElementById(id);
 
+let currentAnim = null;
+
+const playLottie = (type) => {
+  if (currentAnim) {
+    currentAnim.destroy();
+    currentAnim = null;
+  }
+
+  const container = $('lottie');
+  container.innerHTML = '';
+
+  if (!type) return;
+
+  const path = `../lib/lottie/${type}.json`;
+  currentAnim = lottie.loadAnimation({
+    container,
+    renderer: 'svg',
+    loop: type === 'loading',
+    autoplay: true,
+    path,
+  });
+};
+
 const setStatus = (msg, type = '') => {
   $('status').textContent = msg;
   $('status').className = type;
+
+  if (type === 'error') playLottie('error');
+  else if (type === 'success') playLottie('success');
+  else if (msg) playLottie('loading');
+  else playLottie(null);
 };
 
 const getStyle = (styles, id) => {
@@ -83,6 +111,7 @@ const run = async () => {
     URL.revokeObjectURL(url);
 
     setStatus('완료!', 'success');
+    setTimeout(() => setStatus(''), 3000);
   } catch (e) {
     setStatus(e.message, 'error');
   } finally {
