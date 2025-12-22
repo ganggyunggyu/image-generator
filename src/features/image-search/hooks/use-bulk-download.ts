@@ -85,7 +85,7 @@ export const useBulkDownload = () => {
           result.previewUrl,
           result.image.thumbnailLink,
         ]
-          .filter(Boolean)
+          .filter((url): url is string => Boolean(url))
           .map(resolveDownloadUrl);
         const uniqueCandidates = Array.from(new Set(candidateList));
 
