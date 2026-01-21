@@ -1,6 +1,6 @@
 import { FILTER_STYLES, FRAME_STYLES } from '../lib/constants.js';
+import { searchImages, downloadImages } from '../lib/api.js';
 
-const API = 'https://image-generator-dsga.vercel.app';
 const $ = (id) => document.getElementById(id);
 
 let currentAnim = null;
@@ -16,13 +16,12 @@ const playLottie = (type) => {
 
   if (!type) return;
 
-  const path = `../lib/lottie/${type}.json`;
   currentAnim = lottie.loadAnimation({
     container,
     renderer: 'svg',
     loop: type === 'loading',
     autoplay: true,
-    path,
+    path: `../lib/lottie/${type}.json`,
   });
 };
 
@@ -34,23 +33,6 @@ const setStatus = (msg, type = '') => {
   else if (type === 'success') playLottie('success');
   else if (msg) playLottie('loading');
   else playLottie(null);
-};
-
-const getStyle = (styles, id) => {
-  if (id === 'random') {
-    const valid = styles.filter((s) => s.id !== 'none' && s.id !== 'random');
-    return valid[Math.floor(Math.random() * valid.length)];
-  }
-  return styles.find((s) => s.id === id) || styles[0];
-};
-
-const shuffle = (arr) => {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 };
 
 const init = () => {
@@ -69,40 +51,13 @@ const run = async () => {
   setStatus('검색 중...');
 
   try {
-    const res = await fetch(`${API}/api/image/search?q=${encodeURIComponent(query)}&n=50`);
-    const json = await res.json();
-
-    if (!json.success) throw new Error(json.error || '검색 실패');
-
-    const results = shuffle(json.data?.results || []);
-    if (!results.length) throw new Error('결과 없음');
-
+    const results = await searchImages(query);
     setStatus(`${results.length}개 찾음. 다운로드 준비 중...`);
 
-    const images = results.map((r) => ({
-      url: r.link || r.imageUrl,
-      title: r.title,
-      fallbackUrls: [r.imageUrl, r.previewUrl].filter(Boolean),
-    }));
-
-    const filter = getStyle(FILTER_STYLES, $('filter').value);
-    const frame = getStyle(FRAME_STYLES, $('frame').value);
-
-    const dlRes = await fetch(`${API}/api/image/bulk-download`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        images,
-        keyword: query,
-        effectOptions: { filter, frame },
-      }),
-    });
-
-    if (!dlRes.ok) throw new Error('다운로드 실패');
+    const blob = await downloadImages(query, results, $('filter').value, $('frame').value);
 
     setStatus('ZIP 생성 완료. 다운로드 중...');
 
-    const blob = await dlRes.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

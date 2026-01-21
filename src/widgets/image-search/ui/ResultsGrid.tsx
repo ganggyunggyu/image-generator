@@ -22,17 +22,22 @@ export const ResultsGrid = ({
       'grid gap-6',
       'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
     )}>
-      {results.map((result, index) => (
-        <ImageCard
-          key={result.link}
-          image={result}
-          index={index}
-          isSelected={selectedImages.has(index)}
-          onToggleSelect={onToggleSelect}
-          onImageClick={onImageClick}
-          onDownload={onDownload}
-        />
-      ))}
+      {results.map((result, index) => {
+        const { link } = result;
+        const imageKey = `${link}-${index}`;
+
+        return (
+          <ImageCard
+            key={imageKey}
+            image={result}
+            index={index}
+            isSelected={selectedImages.has(index)}
+            onToggleSelect={onToggleSelect}
+            onImageClick={onImageClick}
+            onDownload={onDownload}
+          />
+        );
+      })}
     </div>
   );
 };
