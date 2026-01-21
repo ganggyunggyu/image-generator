@@ -3,6 +3,7 @@ import pLimit from 'p-limit';
 import { getGoogleImageResults } from '@/shared/api/google';
 import { fetchImageBuffer, convertToWebp, applyEffects } from '@/utils/image';
 import { selectRandomFrame, selectRandomFilter } from '@/shared/lib/frame-filter';
+import { uploadToS3, isS3Configured } from '@/shared/lib/s3';
 
 const MAX_CONCURRENT = 5;
 const MAX_COUNT = 10;
@@ -33,7 +34,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'keyword가 필요합니다' }, { status: 400 });
     }
 
-    console.log(`🎨🚀 랜덤 액자 API!! "${keyword}" ${count}개 요청 🔥💨`);
+    const useS3 = isS3Configured();
+    console.log(`🎨🚀 랜덤 액자 API!! "${keyword}" ${count}개 요청 (S3: ${useS3 ? 'ON' : 'OFF'}) 🔥💨`);
 
     const searchResult = await getGoogleImageResults(keyword, count * 2, 'random');
 
@@ -59,11 +61,18 @@ export async function POST(request: NextRequest) {
           const processedBuffer = await applyEffects(imageBuffer, filter, frame);
           const webpBuffer = await convertToWebp(processedBuffer, { quality: 85 });
 
-          const base64 = webpBuffer.toString('base64');
-          const dataUrl = `data:image/webp;base64,${base64}`;
+          let url: string;
+
+          if (useS3) {
+            const result = await uploadToS3(webpBuffer, 'image/webp', 'random-frames');
+            url = result.url;
+          } else {
+            const base64 = webpBuffer.toString('base64');
+            url = `data:image/webp;base64,${base64}`;
+          }
 
           if (images.length < count) {
-            images.push({ url: dataUrl });
+            images.push({ url });
           }
 
           return { success: true };

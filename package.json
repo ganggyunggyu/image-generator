@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.972.0",
+    "@google-cloud/storage": "^7.18.0",
     "@tailwindcss/postcss": "^4.1.13",
     "clsx": "latest",
     "jotai": "latest",
@@ -18,12 +20,14 @@
     "react": "latest",
     "react-dom": "latest",
     "sharp": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/uuid": "^11.0.0",
     "autoprefixer": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
