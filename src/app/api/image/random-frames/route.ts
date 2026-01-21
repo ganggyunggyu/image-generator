@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
           let url: string;
 
           if (useS3) {
-            const result = await uploadToS3(webpBuffer, 'image/webp', 'random-frames');
-            url = result.url;
+            const s3Result = await uploadToS3(webpBuffer, keyword, 'image/webp');
+            url = s3Result.url;
           } else {
             const base64 = webpBuffer.toString('base64');
             url = `data:image/webp;base64,${base64}`;
