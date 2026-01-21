@@ -15,12 +15,12 @@ export const getRealFrameStyles = (): FrameStyle[] => {
 };
 
 /**
- * 실제 필터 스타일 목록을 반환합니다. ('none'과 'random' 제외)
+ * 실제 필터 스타일 목록을 반환합니다. ('random' 제외, 'none' 포함)
  *
  * @returns 실제 필터 스타일 배열
  */
 export const getRealFilterStyles = (): FilterStyle[] => {
-  return FILTER_STYLES.filter(f => f.id !== 'none' && f.id !== 'random');
+  return FILTER_STYLES.filter(f => f.id !== 'random');
 };
 
 /**
