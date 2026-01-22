@@ -9,6 +9,16 @@ const MAX_CONCURRENT = 5;
 const MAX_COUNT = 10;
 const DEFAULT_COUNT = 5;
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 interface RequestBody {
   keyword: string;
   count?: number;
@@ -31,7 +41,7 @@ export async function POST(request: NextRequest) {
     const count = Math.min(body.count || DEFAULT_COUNT, MAX_COUNT);
 
     if (!keyword) {
-      return NextResponse.json({ error: 'keyword가 필요합니다' }, { status: 400 });
+      return NextResponse.json({ error: 'keyword가 필요합니다' }, { status: 400, headers: corsHeaders });
     }
 
     const useS3 = isS3Configured();
@@ -40,7 +50,7 @@ export async function POST(request: NextRequest) {
     const searchResult = await getGoogleImageResults(keyword, count * 2, 'random');
 
     if (!searchResult.results.length) {
-      return NextResponse.json({ error: '검색 결과가 없습니다' }, { status: 404 });
+      return NextResponse.json({ error: '검색 결과가 없습니다' }, { status: 404, headers: corsHeaders });
     }
 
     const limit = pLimit(MAX_CONCURRENT);
@@ -94,12 +104,12 @@ export async function POST(request: NextRequest) {
       failed,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers: corsHeaders });
   } catch (error) {
     console.error('❌💀 랜덤 액자 API 오류!!', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '알 수 없는 오류' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
