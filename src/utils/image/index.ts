@@ -1,5 +1,5 @@
 export { fetchImageBuffer } from './fetch';
-export { convertToWebp, type ConvertToWebpOptions } from './convert';
+export { convertToWebp, convertToPng, type ConvertToWebpOptions, type ConvertToPngOptions } from './convert';
 export { getImageMetadata, validateImageUrl } from './validate';
 export {
   generateSanitizedFilename,

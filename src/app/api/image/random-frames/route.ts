@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pLimit from 'p-limit';
 import { getGoogleImageResults } from '@/shared/api/google';
-import { fetchImageBuffer, convertToWebp, applyEffects } from '@/utils/image';
+import { fetchImageBuffer, convertToPng, applyEffects } from '@/utils/image';
 import { selectRandomFrame, selectRandomFilter } from '@/shared/lib/frame-filter';
 import { uploadToS3, isS3Configured } from '@/shared/lib/s3';
 
@@ -44,10 +44,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'keyword가 필요합니다' }, { status: 400, headers: corsHeaders });
     }
 
-    const useS3 = isS3Configured();
-    console.log(`🎨🚀 랜덤 액자 API!! "${keyword}" ${count}개 요청 (S3: ${useS3 ? 'ON' : 'OFF'}) 🔥💨`);
+    const businessMatch = keyword.match(/업체명:\s*([^\n]+)/);
+    const searchKeyword = businessMatch?.[1]?.trim().split(/\s+/)[0] ?? keyword;
 
-    const searchResult = await getGoogleImageResults(keyword, count * 2, 'random');
+    const useS3 = isS3Configured();
+    console.log(`🎨🚀 랜덤 액자 API!! "${searchKeyword}" ${count}개 요청 (원본: "${keyword.slice(0, 30)}...") (S3: ${useS3 ? 'ON' : 'OFF'}) 🔥💨`);
+
+    const searchResult = await getGoogleImageResults(searchKeyword, count * 2, 'random');
 
     if (!searchResult.results.length) {
       return NextResponse.json({ error: '검색 결과가 없습니다' }, { status: 404, headers: corsHeaders });
@@ -69,16 +72,16 @@ export async function POST(request: NextRequest) {
 
           const imageBuffer = await fetchImageBuffer(result.link);
           const processedBuffer = await applyEffects(imageBuffer, filter, frame);
-          const webpBuffer = await convertToWebp(processedBuffer, { quality: 85 });
+          const pngBuffer = await convertToPng(processedBuffer, { quality: 9 });
 
           let url: string;
 
           if (useS3) {
-            const s3Result = await uploadToS3(webpBuffer, keyword, 'image/webp');
+            const s3Result = await uploadToS3(pngBuffer, searchKeyword, 'image/png');
             url = s3Result.url;
           } else {
-            const base64 = webpBuffer.toString('base64');
-            url = `data:image/webp;base64,${base64}`;
+            const base64 = pngBuffer.toString('base64');
+            url = `data:image/png;base64,${base64}`;
           }
 
           if (images.length < count) {

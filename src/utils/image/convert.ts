@@ -37,6 +37,44 @@ const tryTrimWhiteBorder = async (imageBuffer: Buffer): Promise<Buffer> => {
   }
 };
 
+export interface ConvertToPngOptions {
+  width?: number | undefined;
+  height?: number | undefined;
+  quality?: number;
+}
+
+export const convertToPng = async (
+  imageBuffer: Buffer,
+  options: ConvertToPngOptions = {}
+): Promise<Buffer> => {
+  try {
+    const { width, height, quality = 9 } = options;
+
+    const sharpImage = sharp(imageBuffer);
+    const metadata = await sharpImage.metadata();
+
+    const targetWidth = width || metadata.width;
+    const targetHeight = height || metadata.height;
+
+    const pngBuffer = await sharp(imageBuffer)
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
+        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      })
+      .png({
+        compressionLevel: clamp(quality, 0, 9),
+      })
+      .toBuffer();
+
+    return pngBuffer;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`PNG 변환 실패: ${error.message}`);
+    }
+    throw new Error('알 수 없는 PNG 변환 오류');
+  }
+};
+
 export const convertToWebp = async (
   imageBuffer: Buffer,
   options: ConvertToWebpOptions = {}
