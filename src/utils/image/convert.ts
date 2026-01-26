@@ -58,8 +58,7 @@ export const convertToPng = async (
 
     const pngBuffer = await sharp(imageBuffer)
       .resize(targetWidth, targetHeight, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+        fit: 'fill',
       })
       .png({
         compressionLevel: clamp(quality, 0, 9),
