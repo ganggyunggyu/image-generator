@@ -159,10 +159,10 @@ export const ALL_KEYWORDS = Object.values(POPULAR_KEYWORDS).flat();
 export const getRandomKeyword = (category?: KeywordCategory): string => {
   if (category && POPULAR_KEYWORDS[category]) {
     const keywords = POPULAR_KEYWORDS[category];
-    return keywords[Math.floor(Math.random() * keywords.length)];
+    return keywords[Math.floor(Math.random() * keywords.length)]!;
   }
 
-  return ALL_KEYWORDS[Math.floor(Math.random() * ALL_KEYWORDS.length)];
+  return ALL_KEYWORDS[Math.floor(Math.random() * ALL_KEYWORDS.length)]!;
 };
 
 export const getRandomKeywords = (count: number, category?: KeywordCategory): string[] => {
@@ -172,7 +172,7 @@ export const getRandomKeywords = (count: number, category?: KeywordCategory): st
 
   for (let i = 0; i < actualCount; i++) {
     const randomIndex = Math.floor(Math.random() * pool.length);
-    result.push(pool[randomIndex]);
+    result.push(pool[randomIndex]!);
     pool.splice(randomIndex, 1);
   }
 
