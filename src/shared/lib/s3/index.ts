@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const getS3Client = () =>
@@ -55,4 +55,52 @@ export const isS3Configured = (): boolean => {
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_S3_BUCKET
   );
+};
+
+export interface S3ImageItem {
+  url: string;
+  key: string;
+  size?: number | undefined;
+  lastModified?: Date | undefined;
+}
+
+export const listS3Images = async (
+  folder: string,
+  maxKeys: number = 100
+): Promise<S3ImageItem[]> => {
+  const response = await getS3Client().send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: folder.endsWith('/') ? folder : `${folder}/`,
+      MaxKeys: maxKeys,
+    })
+  );
+
+  if (!response.Contents) return [];
+
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+  return response.Contents
+    .filter((item) => {
+      const key = item.Key || '';
+      return imageExtensions.some((ext) => key.toLowerCase().endsWith(ext));
+    })
+    .map((item) => ({
+      url: `https://${BUCKET}.s3.${REGION}.amazonaws.com/${item.Key}`,
+      key: item.Key || '',
+      size: item.Size,
+      lastModified: item.LastModified,
+    }));
+};
+
+export const readS3TextFile = async (key: string): Promise<string> => {
+  const response = await getS3Client().send(
+    new GetObjectCommand({ Bucket: BUCKET, Key: key })
+  );
+  return (await response.Body?.transformToString()) || '';
+};
+
+export const readS3TextLines = async (key: string): Promise<string[]> => {
+  const text = await readS3TextFile(key);
+  return text.split('\n').map((line) => line.trim()).filter(Boolean);
 };
