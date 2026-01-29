@@ -50,19 +50,14 @@ export const convertToPng = async (
   try {
     const { width, height, quality = 9 } = options;
 
-    const sharpImage = sharp(imageBuffer);
-    const metadata = await sharpImage.metadata();
+    let sharpImage = sharp(imageBuffer);
 
-    const targetWidth = width || metadata.width;
-    const targetHeight = height || metadata.height;
+    if (width && height) {
+      sharpImage = sharpImage.resize(width, height, { fit: 'fill' });
+    }
 
-    const pngBuffer = await sharp(imageBuffer)
-      .resize(targetWidth, targetHeight, {
-        fit: 'fill',
-      })
-      .png({
-        compressionLevel: clamp(quality, 0, 9),
-      })
+    const pngBuffer = await sharpImage
+      .png({ compressionLevel: clamp(quality, 0, 9) })
       .toBuffer();
 
     return pngBuffer;

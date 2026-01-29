@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pLimit from 'p-limit';
 import { getGoogleImageResults } from '@/shared/api/google';
-import { fetchImageBuffer, convertToPng, applyEffects } from '@/utils/image';
-import { selectRandomFrame, selectRandomFilter } from '@/shared/lib/frame-filter';
-import { uploadToS3, isS3Configured } from '@/shared/lib/s3';
+import { isS3Configured } from '@/shared/lib/s3';
 import { getRandomKeyword, KeywordCategory } from '@/shared/lib/keywords';
+import { processImages, ImageItem } from '@/shared/lib/image-processor';
 
-const MAX_CONCURRENT = 5;
 const MAX_COUNT = 10;
 const DEFAULT_COUNT = 5;
 const SEARCH_MULTIPLIER = 4;
-const IMAGE_WIDTH = 966;
-const IMAGE_HEIGHT = 644;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,77 +23,12 @@ interface RequestBody {
   category?: KeywordCategory;
 }
 
-interface ImageItem {
-  url: string;
-}
-
 interface ResponseBody {
   images: ImageItem[];
   keyword: string;
   total: number;
   failed: number;
 }
-
-interface SearchResult {
-  link: string;
-}
-
-// 이미지 처리 함수
-const processImages = async (
-  results: SearchResult[],
-  targetCount: number,
-  currentImages: ImageItem[],
-  folderName: string,
-  useS3: boolean
-): Promise<{ images: ImageItem[]; failed: number }> => {
-  const limit = pLimit(MAX_CONCURRENT);
-  const images = [...currentImages];
-  let failed = 0;
-
-  const promises = results.map((result, index) =>
-    limit(async () => {
-      if (images.length >= targetCount) return null;
-
-      try {
-        const frame = selectRandomFrame();
-        const filter = selectRandomFilter();
-
-        console.log(`🖼️ ${index + 1} 처리 중... (${frame.name} + ${filter.name})`);
-
-        const imageBuffer = await fetchImageBuffer(result.link);
-        const processedBuffer = await applyEffects(imageBuffer, filter, frame, { distortion: true });
-        const pngBuffer = await convertToPng(processedBuffer, {
-          width: IMAGE_WIDTH,
-          height: IMAGE_HEIGHT,
-          quality: 9,
-        });
-
-        let url: string;
-        if (useS3) {
-          const s3Result = await uploadToS3(pngBuffer, folderName, 'image/png');
-          url = s3Result.url;
-        } else {
-          const base64 = pngBuffer.toString('base64');
-          url = `data:image/png;base64,${base64}`;
-        }
-
-        if (images.length < targetCount) {
-          images.push({ url });
-          console.log(`✅ ${images.length}/${targetCount} 완료`);
-        }
-
-        return { success: true };
-      } catch (error) {
-        console.error(`❌ ${index + 1} 실패:`, error);
-        failed++;
-        return { success: false };
-      }
-    })
-  );
-
-  await Promise.all(promises);
-  return { images, failed };
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -118,7 +48,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '검색 결과가 없습니다' }, { status: 404, headers: corsHeaders });
     }
 
-    const result = await processImages(searchResult.results, count, [], searchKeyword, useS3);
+    const result = await processImages(searchResult.results, count, [], {
+      useS3,
+      folderName: searchKeyword,
+      useFilter: true,
+      distortionLevel: 'heavy',
+    });
 
     console.log(`✅🎉 랜덤 액자 완료!! ${result.images.length}/${count}개 성공, ${result.failed}개 실패 🔥💯`);
 
