@@ -156,6 +156,39 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   return sharpImage.toBuffer();
 };
 
+/**
+ * 가벼운 왜곡 (유사 이미지 검색 회피용, 최소한의 변형)
+ * - 미세한 밝기/채도 조정
+ * - 살짝 크롭
+ * - ~30,000개 조합 (충돌 확률 ~0.04%)
+ */
+export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
+  const metadata = await sharp(imageBuffer).metadata();
+  const { width = 800, height = 600 } = metadata;
+
+  const brightness = 0.85 + Math.random() * 0.3; // 0.85 ~ 1.15
+  const saturation = 0.85 + Math.random() * 0.3; // 0.85 ~ 1.15
+  const hue = Math.floor(Math.random() * 17) - 8; // -8 ~ +8
+  const cropPercent = 0.01 + Math.random() * 0.06; // 1-7%
+
+  const cropX = Math.floor(width * cropPercent);
+  const cropY = Math.floor(height * cropPercent);
+  const cropWidth = width - cropX * 2;
+  const cropHeight = height - cropY * 2;
+
+  console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%)`);
+
+  return sharp(imageBuffer)
+    .extract({
+      left: cropX,
+      top: cropY,
+      width: Math.max(cropWidth, 1),
+      height: Math.max(cropHeight, 1),
+    })
+    .modulate({ brightness, saturation, hue })
+    .toBuffer();
+};
+
 export const applyEffects = async (
   imageBuffer: Buffer,
   filter: FilterStyle,
