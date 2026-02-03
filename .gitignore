@@ -68,3 +68,7 @@ pids
 
 /test-images
 /src/test-image/
+
+# samples
+/_samples/
+test-result.json
