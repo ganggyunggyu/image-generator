@@ -48,6 +48,12 @@ const nextConfig = {
       },
     ];
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '200mb',
+    },
+    proxyClientMaxBodySize: '200mb',
+  },
   poweredByHeader: false,
   compress: true,
   devIndicators: {

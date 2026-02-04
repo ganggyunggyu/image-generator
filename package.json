@@ -29,6 +29,7 @@
     "@types/react-dom": "latest",
     "@types/uuid": "^11.0.0",
     "autoprefixer": "latest",
+    "dotenv": "^17.2.3",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "postcss": "latest",
