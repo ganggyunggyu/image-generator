@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const getS3Client = () =>
@@ -172,4 +172,38 @@ export const renameS3Folder = async (oldPrefix: string, newPrefix: string): Prom
   } while (continuationToken);
 
   return count;
+};
+
+export const deleteS3Prefix = async (prefix: string): Promise<number> => {
+  const client = getS3Client();
+  let totalDeleted = 0;
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      }),
+    );
+
+    const objects = (response.Contents || [])
+      .filter((o) => o.Key)
+      .map((o) => ({ Key: o.Key! }));
+
+    if (objects.length === 0) break;
+
+    await client.send(
+      new DeleteObjectsCommand({
+        Bucket: BUCKET,
+        Delete: { Objects: objects },
+      }),
+    );
+
+    totalDeleted += objects.length;
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return totalDeleted;
 };
