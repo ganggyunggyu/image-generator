@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const getS3Client = () =>
@@ -93,6 +93,36 @@ export const listS3Images = async (
     }));
 };
 
+export const listS3Folders = async (prefix: string): Promise<string[]> => {
+  const normalizedPrefix = prefix.endsWith('/') ? prefix : `${prefix}/`;
+  const folders: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await getS3Client().send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: normalizedPrefix,
+        Delimiter: '/',
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    if (response.CommonPrefixes) {
+      for (const cp of response.CommonPrefixes) {
+        if (cp.Prefix) {
+          const folderName = cp.Prefix.replace(normalizedPrefix, '').replace('/', '');
+          if (folderName) folders.push(folderName);
+        }
+      }
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return folders;
+};
+
 export const readS3TextFile = async (key: string): Promise<string> => {
   const response = await getS3Client().send(
     new GetObjectCommand({ Bucket: BUCKET, Key: key })
@@ -103,4 +133,43 @@ export const readS3TextFile = async (key: string): Promise<string> => {
 export const readS3TextLines = async (key: string): Promise<string[]> => {
   const text = await readS3TextFile(key);
   return text.split('\n').map((line) => line.trim()).filter(Boolean);
+};
+
+export const renameS3Folder = async (oldPrefix: string, newPrefix: string): Promise<number> => {
+  const oldNorm = oldPrefix.endsWith('/') ? oldPrefix : `${oldPrefix}/`;
+  const newNorm = newPrefix.endsWith('/') ? newPrefix : `${newPrefix}/`;
+  const client = getS3Client();
+  let count = 0;
+
+  let continuationToken: string | undefined;
+  do {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: oldNorm,
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    for (const item of response.Contents || []) {
+      if (!item.Key) continue;
+      const newKey = item.Key.replace(oldNorm, newNorm);
+
+      await client.send(
+        new CopyObjectCommand({
+          Bucket: BUCKET,
+          CopySource: `${BUCKET}/${item.Key}`,
+          Key: newKey,
+        })
+      );
+      await client.send(
+        new DeleteObjectCommand({ Bucket: BUCKET, Key: item.Key })
+      );
+      count++;
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return count;
 };
