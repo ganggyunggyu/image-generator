@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGoogleImageResults } from '@/shared/api/google';
 import { isS3Configured } from '@/shared/lib/s3';
 import { getRandomKeyword, KeywordCategory } from '@/shared/lib/keywords';
-import { processImages, ImageItem } from '@/shared/lib/image-processor';
+import { processImages } from '@/shared/lib/image-processor';
 
 const MAX_COUNT = 10;
 const DEFAULT_COUNT = 5;
@@ -23,12 +23,18 @@ interface RequestBody {
   category?: KeywordCategory;
 }
 
-interface ResponseBody {
-  images: ImageItem[];
-  keyword: string;
-  total: number;
-  failed: number;
+interface ProductImages {
+  body: string[];
+  individual: string[];
+  slide: string[];
+  collage: string[];
+  excludeLibrary: string[];
+  excludeLibraryLink: string[];
 }
+
+const emptyImages: ProductImages = {
+  body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,16 +61,22 @@ export async function POST(request: NextRequest) {
       distortionLevel: 'heavy',
     });
 
-    console.log(`✅🎉 랜덤 액자 완료!! ${result.images.length}/${count}개 성공, ${result.failed}개 실패 🔥💯`);
+    const bodyImages = result.images.slice(0, count).map((img) => img.url);
+    console.log(`✅🎉 랜덤 액자 완료!! ${bodyImages.length}/${count}개 성공, ${result.failed}개 실패 🔥💯`);
 
-    const response: ResponseBody = {
-      images: result.images.slice(0, count),
-      keyword: searchKeyword,
-      total: result.images.length,
-      failed: result.failed,
-    };
-
-    return NextResponse.json(response, { headers: corsHeaders });
+    return NextResponse.json(
+      {
+        images: { ...emptyImages, body: bodyImages },
+        metadata: {},
+        keyword: searchKeyword,
+        blogId: '',
+        category: '',
+        folder: searchKeyword,
+        total: bodyImages.length,
+        failed: result.failed,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('❌💀 랜덤 액자 API 오류!!', error);
     return NextResponse.json(

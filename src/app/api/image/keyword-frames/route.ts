@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGoogleImageResults } from '@/shared/api/google';
 import { isS3Configured } from '@/shared/lib/s3';
 import { getRandomKeyword } from '@/shared/lib/keywords';
-import { processImages, ImageItem } from '@/shared/lib/image-processor';
-import { translateToEnglish } from '@/shared/lib/translate';
+import { processImages } from '@/shared/lib/image-processor';
+import { translateWithGrok } from '@/shared/lib/xai';
 
 const MAX_COUNT = 10;
 const DEFAULT_COUNT = 5;
@@ -24,14 +24,18 @@ interface RequestBody {
   count?: number;
 }
 
-interface ResponseBody {
-  images: ImageItem[];
-  keyword: string;
-  translatedKeyword?: string;
-  total: number;
-  failed: number;
-  usedFallback: boolean;
+interface ProductImages {
+  body: string[];
+  individual: string[];
+  slide: string[];
+  collage: string[];
+  excludeLibrary: string[];
+  excludeLibraryLink: string[];
 }
+
+const emptyImages: ProductImages = {
+  body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,16 +52,15 @@ export async function POST(request: NextRequest) {
 
     // 한국어 포함 시 영어로 번역
     const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(keyword);
-    const searchKeyword = hasKorean ? await translateToEnglish(keyword) : keyword;
+    const searchKeyword = hasKorean ? await translateWithGrok(keyword) : keyword;
 
     const useS3 = isS3Configured();
     console.log(`🖼️ 키워드 액자 API: "${keyword}"${hasKorean ? ` → "${searchKeyword}"` : ''} ${count}개 요청 (S3: ${useS3 ? 'ON' : 'OFF'})`);
 
     const searchResult = await getGoogleImageResults(searchKeyword, count * SEARCH_MULTIPLIER, 'original');
 
-    let images: ImageItem[] = [];
+    let bodyImages: string[] = [];
     let failed = 0;
-    let usedFallback = false;
 
     if (searchResult.results.length > 0) {
       const result = await processImages(searchResult.results, count, [], {
@@ -66,14 +69,13 @@ export async function POST(request: NextRequest) {
         useFilter: false,
         distortionLevel: 'light',
       });
-      images = result.images;
+      bodyImages = result.images.map((img) => img.url);
       failed = result.failed;
     }
 
-    if (images.length < count) {
-      usedFallback = true;
-      const remaining = count - images.length;
-      console.log(`⚠️ 결과 부족 (${images.length}/${count}), 랜덤 키워드로 ${remaining}개 보충`);
+    if (bodyImages.length < count) {
+      const remaining = count - bodyImages.length;
+      console.log(`⚠️ 결과 부족 (${bodyImages.length}/${count}), 랜덤 키워드로 ${remaining}개 보충`);
 
       const fallbackKeyword = getRandomKeyword();
       const fallbackResult = await getGoogleImageResults(fallbackKeyword, remaining * SEARCH_MULTIPLIER, 'random');
@@ -85,23 +87,27 @@ export async function POST(request: NextRequest) {
           useFilter: false,
           distortionLevel: 'light',
         });
-        images = [...images, ...result.images];
+        bodyImages = [...bodyImages, ...result.images.map((img) => img.url)];
         failed += result.failed;
       }
     }
 
-    console.log(`✅ 키워드 액자 완료: ${images.length}/${count}개 성공, ${failed}개 실패${usedFallback ? ' (fallback 사용)' : ''}`);
+    const finalImages = bodyImages.slice(0, count);
+    console.log(`✅ 키워드 액자 완료: ${finalImages.length}/${count}개 성공, ${failed}개 실패`);
 
-    const response: ResponseBody = {
-      images: images.slice(0, count),
-      keyword,
-      ...(hasKorean && { translatedKeyword: searchKeyword }),
-      total: images.length,
-      failed,
-      usedFallback,
-    };
-
-    return NextResponse.json(response, { headers: corsHeaders });
+    return NextResponse.json(
+      {
+        images: { ...emptyImages, body: finalImages },
+        metadata: {},
+        keyword,
+        blogId: '',
+        category: '',
+        folder: keyword,
+        total: finalImages.length,
+        failed,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('❌ 키워드 액자 API 오류:', error);
     return NextResponse.json(

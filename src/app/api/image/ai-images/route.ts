@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import pLimit from 'p-limit';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { shuffleArrayInPlace } from '@/utils/array';
-import { applyLightDistortion } from '@/utils/image';
+import { applyLightDistortion, convertToPng } from '@/utils/image';
+import { uploadToS3 } from '@/shared/lib/s3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,19 +111,18 @@ const listImagesInFolder = async (folder: string): Promise<string[]> => {
   return images;
 };
 
-interface ImageItem {
-  url: string;
+interface ProductImages {
+  body: string[];
+  individual: string[];
+  slide: string[];
+  collage: string[];
+  excludeLibrary: string[];
+  excludeLibraryLink: string[];
 }
 
-interface ResponseBody {
-  success: boolean;
-  found: boolean;
-  images: ImageItem[];
-  keyword: string;
-  matchedFolder: string | null;
-  total: number;
-  failed: number;
-}
+const emptyImages: ProductImages = {
+  body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -151,11 +151,12 @@ export async function GET(request: NextRequest) {
       console.log(`❌ 매칭 폴더 없음: "${keyword}"`);
       return NextResponse.json(
         {
-          success: true,
-          found: false,
-          images: [],
+          images: { ...emptyImages },
+          metadata: {},
           keyword,
-          matchedFolder: null,
+          blogId: '',
+          category: '',
+          folder: '',
           total: 0,
           failed: 0,
         },
@@ -174,7 +175,7 @@ export async function GET(request: NextRequest) {
 
     // 4. 이미지 처리 (왜곡 적용)
     const limit = pLimit(5);
-    const images: ImageItem[] = [];
+    const bodyImages: string[] = [];
     let failed = 0;
 
     await Promise.all(
@@ -185,10 +186,10 @@ export async function GET(request: NextRequest) {
             if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
 
             const buffer = Buffer.from(await res.arrayBuffer());
-            const processed = distort ? await applyLightDistortion(buffer) : buffer;
-            const base64 = `data:image/webp;base64,${processed.toString('base64')}`;
-
-            images.push({ url: base64 });
+            const distorted = distort ? await applyLightDistortion(buffer) : buffer;
+            const pngBuffer = await convertToPng(distorted);
+            const { url } = await uploadToS3(pngBuffer, `ai-processed/${keyword}`, 'image/png');
+            bodyImages.push(url);
           } catch (err) {
             console.error(`❌ 처리 실패: ${imageUrl}`, err);
             failed++;
@@ -197,19 +198,21 @@ export async function GET(request: NextRequest) {
       )
     );
 
-    console.log(`✅ 완료: ${images.length}개 성공, ${failed}개 실패`);
+    console.log(`✅ 완료: ${bodyImages.length}개 성공, ${failed}개 실패`);
 
-    const response: ResponseBody = {
-      success: true,
-      found: true,
-      images,
-      keyword,
-      matchedFolder,
-      total: images.length,
-      failed,
-    };
-
-    return NextResponse.json(response, { headers: corsHeaders });
+    return NextResponse.json(
+      {
+        images: { ...emptyImages, body: bodyImages },
+        metadata: {},
+        keyword,
+        blogId: '',
+        category: '',
+        folder: matchedFolder,
+        total: bodyImages.length,
+        failed,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('❌ ai-images API 오류:', error);
     return NextResponse.json(
