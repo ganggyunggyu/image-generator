@@ -112,7 +112,7 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const saturation = 0.8 + Math.random() * 0.4;
   const hue = Math.round(Math.random() * 30 - 15); // -15 ~ +15
   const contrast = 0.9 + Math.random() * 0.2; // 0.9 ~ 1.1
-  const gamma = 0.9 + Math.random() * 0.2; // 0.9 ~ 1.1
+  const gamma = 1.0 + Math.random() * 0.3; // 1.0 ~ 1.3
   const shouldBlur = Math.random() > 0.7; // 30% 확률
   const shouldSharpen = !shouldBlur && Math.random() > 0.7; // 블러 없을 때 30% 확률
 
@@ -157,26 +157,32 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
 };
 
 /**
- * 가벼운 왜곡 (유사 이미지 검색 회피용, 최소한의 변형)
- * - 미세한 밝기/채도 조정
- * - 살짝 크롭
- * - ~30,000개 조합 (충돌 확률 ~0.04%)
+ * 가벼운 왜곡 (유사 이미지 검색 회피용)
+ * - 밝기/채도 조정
+ * - 크롭
+ * - 미세 비율 왜곡
+ * - 감마 조정
  */
 export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const metadata = await sharp(imageBuffer).metadata();
   const { width = 800, height = 600 } = metadata;
 
-  const brightness = 0.85 + Math.random() * 0.3; // 0.85 ~ 1.15
-  const saturation = 0.85 + Math.random() * 0.3; // 0.85 ~ 1.15
-  const hue = Math.floor(Math.random() * 17) - 8; // -8 ~ +8
-  const cropPercent = 0.01 + Math.random() * 0.06; // 1-7%
+  const brightness = 0.80 + Math.random() * 0.4; // 0.80 ~ 1.20
+  const saturation = 0.80 + Math.random() * 0.4; // 0.80 ~ 1.20
+  const hue = Math.floor(Math.random() * 25) - 12; // -12 ~ +12
+  const cropPercent = 0.02 + Math.random() * 0.08; // 2-10%
+  const gamma = 1.0 + Math.random() * 0.3; // 1.0 ~ 1.3
+  const ratioX = 1 + (Math.random() * 0.06 - 0.03); // -3% ~ +3%
+  const ratioY = 1 + (Math.random() * 0.06 - 0.03);
 
   const cropX = Math.floor(width * cropPercent);
   const cropY = Math.floor(height * cropPercent);
   const cropWidth = width - cropX * 2;
   const cropHeight = height - cropY * 2;
+  const newWidth = Math.round(cropWidth * ratioX);
+  const newHeight = Math.round(cropHeight * ratioY);
 
-  console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%)`);
+  console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%) gamma(${gamma.toFixed(2)}) ratio(${ratioX.toFixed(3)}x${ratioY.toFixed(3)})`);
 
   return sharp(imageBuffer)
     .extract({
@@ -185,7 +191,9 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
       width: Math.max(cropWidth, 1),
       height: Math.max(cropHeight, 1),
     })
+    .resize(Math.max(newWidth, 1), Math.max(newHeight, 1), { fit: 'fill' })
     .modulate({ brightness, saturation, hue })
+    .gamma(gamma)
     .toBuffer();
 };
 
