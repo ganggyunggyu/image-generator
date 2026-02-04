@@ -37,7 +37,7 @@ export const translateWithGrok = async (text: string): Promise<string> => {
           {
             role: 'system',
             content:
-              'You are a translator. Translate Korean to English search keywords. Output ONLY the English keyword, nothing else. Keep medical/technical terms accurate.',
+              'Extract the core subject from Korean text as a short English image search keyword (1-3 words max). Remove all modifiers, opinions, reviews, recommendations, tips, analysis, how-to, comparisons. Output ONLY the core noun/topic, nothing else.',
           },
           {
             role: 'user',
