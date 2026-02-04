@@ -4,7 +4,46 @@ import pLimit from 'p-limit';
 import { convertToWebp, generateSanitizedFilename, sanitizeKeyword } from '@/utils/image';
 import { DownloadOptions } from '@/shared/lib/frame-filter';
 
+export const runtime = 'nodejs';
+
 const MAX_CONCURRENT_DOWNLOADS = 5;
+const MAX_BODY_SIZE = 200 * 1024 * 1024; // 200MB
+
+async function readLargeBody<T>(request: NextRequest): Promise<T> {
+  const reader = request.body?.getReader();
+  if (!reader) throw new Error('Request body is empty');
+
+  const chunks: Uint8Array[] = [];
+  let totalSize = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      totalSize += value.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        throw new Error(`Request body exceeded ${MAX_BODY_SIZE / 1024 / 1024}MB limit`);
+      }
+      chunks.push(value);
+    }
+  }
+
+  const combined = new Uint8Array(totalSize);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  const bodyText = new TextDecoder().decode(combined);
+
+  try {
+    return JSON.parse(bodyText) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid JSON';
+    throw new Error(`요청 본문 JSON 파싱 실패: ${message}`);
+  }
+}
 
 interface ProcessedBulkDownloadRequest {
   processedImages: Array<{
@@ -21,7 +60,7 @@ interface ProcessedBulkDownloadRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ProcessedBulkDownloadRequest = await request.json();
+    const body = await readLargeBody<ProcessedBulkDownloadRequest>(request);
 
     if (!body.processedImages || !Array.isArray(body.processedImages)) {
       return NextResponse.json(
@@ -148,12 +187,21 @@ export async function POST(request: NextRequest) {
     let statusCode = 500;
 
     if (error instanceof Error) {
-      errorMessage = error.message;
+      const message = error.message;
+      const normalizedMessage = message.toLowerCase();
 
-      if (error.message.includes('메모리') || error.message.includes('memory')) {
+      errorMessage = message;
+
+      if (message.includes('Request body exceeded')) {
+        statusCode = 413;
+        errorMessage = '요청 본문이 너무 큽니다. 이미지 개수를 줄이거나 용량 제한을 늘려주세요';
+      } else if (message.includes('요청 본문 JSON 파싱 실패')) {
+        statusCode = 413;
+        errorMessage = '요청 본문이 잘렸습니다. 이미지 개수를 줄이거나 용량 제한을 늘려주세요';
+      } else if (message.includes('메모리') || normalizedMessage.includes('memory')) {
         statusCode = 507;
         errorMessage = '이미지 처리 중 메모리가 부족합니다';
-      } else if (error.message.includes('시간초과') || error.message.includes('timeout')) {
+      } else if (message.includes('시간초과') || normalizedMessage.includes('timeout')) {
         statusCode = 504;
         errorMessage = '이미지 처리 시간이 초과되었습니다';
       }
