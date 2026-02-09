@@ -97,6 +97,8 @@ export const applyFrame = async (
  * - 색상 조정 (밝기/채도 ±20%, hue ±15)
  * - 대비/감마 조정
  * - 블러/샤프닝
+ * - 원근 왜곡 (perspective)
+ * - 기울이기 (skew)
  */
 export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const metadata = await sharp(imageBuffer).metadata();
@@ -116,6 +118,12 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const shouldBlur = Math.random() > 0.7; // 30% 확률
   const shouldSharpen = !shouldBlur && Math.random() > 0.7; // 블러 없을 때 30% 확률
 
+  // 원근 왜곡 (perspective): 상/하단 폭 차이 -4% ~ +4%
+  const perspectiveX = (Math.random() * 0.08 - 0.04);
+  // 기울이기 (skew): -3° ~ +3°
+  const skewDeg = Math.random() * 6 - 3;
+  const skewRad = (skewDeg * Math.PI) / 180;
+
   // 크롭 영역 계산
   const cropX = Math.floor(width * cropPercent);
   const cropY = Math.floor(height * cropPercent);
@@ -126,6 +134,14 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const newWidth = Math.round(cropWidth * ratioX);
   const newHeight = Math.round(cropHeight * ratioY);
 
+  // affine 변환 매트릭스
+  const skewMatrix: [number, number, number, number] = [
+    1 + perspectiveX,
+    Math.tan(skewRad),
+    0,
+    1 - perspectiveX,
+  ];
+
   let sharpImage = sharp(imageBuffer)
     .extract({
       left: cropX,
@@ -134,6 +150,7 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
       height: Math.max(cropHeight, 1),
     })
     .resize(newWidth, newHeight, { fit: 'fill' })
+    .affine(skewMatrix, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .rotate(rotation, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .modulate({ brightness, saturation, hue })
     .linear(contrast, 0)
@@ -151,7 +168,7 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
     sharpImage = sharpImage.sharpen({ sigma: 0.5 + Math.random() * 1 });
   }
 
-  console.log(`🔀 강한 왜곡: ratio(${ratioX.toFixed(2)}x${ratioY.toFixed(2)}) rot(${rotation.toFixed(1)}°) flip(${shouldFlip}) crop(${(cropPercent * 100).toFixed(0)}%) bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) contrast(${contrast.toFixed(2)}) gamma(${gamma.toFixed(2)}) blur(${shouldBlur}) sharp(${shouldSharpen})`);
+  console.log(`🔀 강한 왜곡: ratio(${ratioX.toFixed(2)}x${ratioY.toFixed(2)}) rot(${rotation.toFixed(1)}°) flip(${shouldFlip}) crop(${(cropPercent * 100).toFixed(0)}%) bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) contrast(${contrast.toFixed(2)}) gamma(${gamma.toFixed(2)}) perspective(${(perspectiveX * 100).toFixed(1)}%) skew(${skewDeg.toFixed(1)}°) blur(${shouldBlur}) sharp(${shouldSharpen})`);
 
   return sharpImage.toBuffer();
 };
@@ -162,6 +179,8 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
  * - 크롭
  * - 미세 비율 왜곡
  * - 감마 조정
+ * - 원근 왜곡 (perspective)
+ * - 기울이기 (skew)
  */
 export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   const metadata = await sharp(imageBuffer).metadata();
@@ -175,6 +194,12 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
   const ratioX = 1 + (Math.random() * 0.06 - 0.03); // -3% ~ +3%
   const ratioY = 1 + (Math.random() * 0.06 - 0.03);
 
+  // 원근 왜곡 (perspective): 상/하단 폭 차이 -2% ~ +2%
+  const perspectiveX = (Math.random() * 0.04 - 0.02);
+  // 기울이기 (skew): -1.5° ~ +1.5°
+  const skewDeg = Math.random() * 3 - 1.5;
+  const skewRad = (skewDeg * Math.PI) / 180;
+
   const cropX = Math.floor(width * cropPercent);
   const cropY = Math.floor(height * cropPercent);
   const cropWidth = width - cropX * 2;
@@ -182,7 +207,16 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
   const newWidth = Math.round(cropWidth * ratioX);
   const newHeight = Math.round(cropHeight * ratioY);
 
-  console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%) gamma(${gamma.toFixed(2)}) ratio(${ratioX.toFixed(3)}x${ratioY.toFixed(3)})`);
+  // affine 변환 매트릭스: [a, b, c, d] -> x' = ax + by, y' = cx + dy
+  // skew: 수평 기울이기는 b = tan(angle), 수직은 c = tan(angle)
+  const skewMatrix: [number, number, number, number] = [
+    1 + perspectiveX, // a: 약간의 수평 스케일 변형
+    Math.tan(skewRad), // b: 수평 기울이기
+    0, // c: 수직 기울이기 (0으로 유지)
+    1 - perspectiveX, // d: 약간의 수직 스케일 변형 (반대 방향)
+  ];
+
+  console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%) gamma(${gamma.toFixed(2)}) ratio(${ratioX.toFixed(3)}x${ratioY.toFixed(3)}) perspective(${(perspectiveX * 100).toFixed(1)}%) skew(${skewDeg.toFixed(1)}°)`);
 
   return sharp(imageBuffer)
     .extract({
@@ -192,6 +226,7 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
       height: Math.max(cropHeight, 1),
     })
     .resize(Math.max(newWidth, 1), Math.max(newHeight, 1), { fit: 'fill' })
+    .affine(skewMatrix, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .modulate({ brightness, saturation, hue })
     .gamma(gamma)
     .toBuffer();
