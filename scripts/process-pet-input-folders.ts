@@ -31,12 +31,15 @@ for (const blogId of blogIds) {
     fs.mkdirSync(libOut, { recursive: true });
 
     const files = listFiles(srcDir);
+
+    // 파일명에 "라이브러리" 포함된 이미지 전부 처리
     const libFiles = files
-      .filter((f) => f.startsWith('라이브러리제외_') && isImageFile(f))
+      .filter((f) => f.includes('라이브러리') && isImageFile(f))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    libFiles.forEach((f) => {
-      fs.copyFileSync(path.join(srcDir, f), path.join(libOut, f));
+    libFiles.forEach((f, i) => {
+      const ext = path.extname(f);
+      fs.copyFileSync(path.join(srcDir, f), path.join(libOut, `라이브러리제외_${i + 1}${ext}`));
     });
 
     console.log(`    라이브러리제외: ${libFiles.length}장`);
