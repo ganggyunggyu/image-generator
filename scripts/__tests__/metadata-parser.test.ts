@@ -143,4 +143,12 @@ describe('extractKeyword', () => {
   it('언더스코어 없으면 전체 반환', () => {
     expect(extractKeyword('10.고양이')).toBe('고양이');
   });
+
+  it('발행 suffix 제거', () => {
+    expect(extractKeyword('3.라식라섹차이_화요일 발행')).toBe('라식라섹차이');
+  });
+
+  it('원본 키워드가 underscore 뒤에 있는 케이스', () => {
+    expect(extractKeyword('1.도그마루논현_도그마루 논현')).toBe('도그마루 논현');
+  });
 });

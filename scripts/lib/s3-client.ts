@@ -1,7 +1,15 @@
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', quiet: true });
 
-import { S3Client, PutObjectCommand, ListObjectsV2Command, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 
 const getS3Client = () =>
   new S3Client({
@@ -21,4 +29,11 @@ export const s3 = (): S3Client => {
   return _client;
 };
 
-export { PutObjectCommand, ListObjectsV2Command, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand };
+export {
+  PutObjectCommand,
+  ListObjectsV2Command,
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+};

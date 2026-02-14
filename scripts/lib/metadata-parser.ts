@@ -77,6 +77,23 @@ export const extractBlogId = (folderName: string): string => {
 
 export const extractKeyword = (folderName: string): string => {
   const withoutNumber = folderName.replace(/^\d+\./, '');
-  const parts = withoutNumber.split('_');
-  return parts[0]!.trim();
+  const parts = withoutNumber.split('_').map((p) => p.trim()).filter(Boolean);
+
+  const isPublishSuffix = (part: string): boolean =>
+    part.includes('발행') || /(월|화|수|목|금|토|일)요일/.test(part);
+
+  const isNumericSuffix = (part: string): boolean => /^\d+$/.test(part);
+
+  const isBlogIdSuffix = (part: string): boolean => /^[a-z0-9_]+$/i.test(part);
+
+  if (parts.length === 0) return withoutNumber.trim();
+  if (parts.length === 1) return parts[0]!.trim();
+
+  const lastPart = parts[parts.length - 1]!;
+  if (isPublishSuffix(lastPart) || isNumericSuffix(lastPart) || isBlogIdSuffix(lastPart)) {
+    return parts[0]!.trim();
+  }
+
+  // e.g. "키워드폴더_실제 키워드" 같이 안전한 폴더명 + 원본 키워드가 같이 들어오는 케이스 대응
+  return lastPart.trim();
 };
