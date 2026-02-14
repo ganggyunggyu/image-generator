@@ -153,11 +153,20 @@ images.excludeLibraryLink.forEach((base64, index) => {
 ## Upload Script
 
 ```bash
-# blogId 없이
-npx tsx scripts/upload-all-products.ts ./애견_출력
+# 애견: blog folder(블로그명) + blogId
+npx tsx scripts/upload-all-products.ts "./_samples/output/애견_출력/맛집 탐험대" lesyt
 
-# blogId 포함
-npx tsx scripts/upload-all-products.ts ./애견_출력 blog_abc
+# 애견: blogId 생략 가능 (scripts/lib/blog-account-map.ts 매핑 기반)
+npx tsx scripts/upload-all-products.ts "./_samples/output/애견_출력/맛집 탐험대"
+
+# 애견: 루트 폴더 업로드 (안에 있는 블로그 폴더 전부 업로드)
+npx tsx scripts/upload-all-products.ts "./_samples/output/애견_출력"
+
+# 안과: 폴더명이 이미 blogId인 케이스
+npx tsx scripts/upload-all-products.ts "./_samples/output/안과_출력/mixxut"
+
+# 안과: 루트 폴더 업로드 (안에 있는 blogId 폴더 전부 업로드)
+npx tsx scripts/upload-all-products.ts "./_samples/output/안과_출력"
 ```
 
 ## Error

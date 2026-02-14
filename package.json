@@ -8,7 +8,16 @@
     "start": "next start -p 3939",
     "lint": "next lint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "scripts:build": "tsc -p tsconfig.scripts.json",
+    "process:pet": "pnpm -s scripts:build && node dist-scripts/process-pet-input-folders.js",
+    "process:eye": "pnpm -s scripts:build && node dist-scripts/process-input-folders.js",
+    "category:pet": "pnpm -s scripts:build && node dist-scripts/generate-keyword-category-txt.js 애견",
+    "category:eye": "pnpm -s scripts:build && node dist-scripts/generate-keyword-category-txt.js 안과",
+    "upload:blog": "pnpm -s scripts:build && node dist-scripts/upload-all-products.js",
+    "upload:root": "pnpm -s scripts:build && node dist-scripts/upload-output-root.js",
+    "upload:pet:all": "pnpm -s upload:root -- \"./_samples/output/애견_출력\"",
+    "upload:eye:all": "pnpm -s upload:root -- \"./_samples/output/안과_출력\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",

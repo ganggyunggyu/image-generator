@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-scripts",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "scripts/lib/**/*.ts",
+    "scripts/process-pet-input-folders.ts",
+    "scripts/process-input-folders.ts",
+    "scripts/generate-keyword-category-txt.ts",
+    "scripts/upload-all-products.ts",
+    "scripts/upload-output-root.ts"
+  ],
+  "exclude": [
+    "scripts/__tests__/**"
+  ]
+}

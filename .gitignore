@@ -72,3 +72,5 @@ pids
 # samples
 /_samples/
 test-result.json
+
+/dist-scripts/
