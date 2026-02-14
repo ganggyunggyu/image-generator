@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Header } from './_components/Header';
-import { Footer } from './_components/Footer';
+import { Header, Footer } from '@/widgets/app-shell';
+import { cn } from '@/shared/lib/cn';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -37,9 +37,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <meta name="theme-color" content="#10b981" />
       </head>
-      <body className={inter.className}>
+      <body className={cn(inter.className)}>
         <Header />
-        <main className="min-h-screen py-12">
+        <main className={cn('min-h-screen py-12')}>
           {children}
         </main>
         <Footer />

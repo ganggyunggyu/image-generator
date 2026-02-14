@@ -28,7 +28,7 @@ const BUCKET = process.env.AWS_S3_BUCKET || '';
 const REGION = process.env.AWS_S3_REGION || 'ap-northeast-2';
 
 const normalize = (str: string): string => {
-  return str.replace(/\s+/g, '').toLowerCase().trim();
+  return str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
 };
 
 const findBestMatchingFolder = (keyword: string, folders: string[]): string | null => {

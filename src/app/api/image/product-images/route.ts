@@ -55,7 +55,7 @@ type ResponseKey = (typeof FOLDER_MAP)[S3FolderName];
 const S3_FOLDERS = Object.keys(FOLDER_MAP) as S3FolderName[];
 const NO_DISTORT_FOLDERS: S3FolderName[] = ['라이브러리제외', '라이브러리제외_링크'];
 
-const normalize = (str: string): string => str.replace(/\s+/g, '').toLowerCase().trim();
+const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
 const stripSuffix = (str: string): string => str.replace(/_\d+$/, '');
 
 const findMatchingFolder = (keyword: string, folders: string[]): string | null => {
