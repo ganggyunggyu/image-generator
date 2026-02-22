@@ -1,6 +1,8 @@
 import sharp from 'sharp';
 import { FilterStyle, FrameStyle } from '@/shared/lib/frame-filter';
 
+const TRANSPARENT_BACKGROUND = { r: 0, g: 0, b: 0, alpha: 0 } as const;
+
 export const applyFilter = async (
   imageBuffer: Buffer,
   filter: FilterStyle
@@ -143,6 +145,7 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
   ];
 
   let sharpImage = sharp(imageBuffer)
+    .ensureAlpha()
     .extract({
       left: cropX,
       top: cropY,
@@ -150,8 +153,8 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
       height: Math.max(cropHeight, 1),
     })
     .resize(newWidth, newHeight, { fit: 'fill' })
-    .affine(skewMatrix, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
-    .rotate(rotation, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .affine(skewMatrix, { background: TRANSPARENT_BACKGROUND })
+    .rotate(rotation, { background: TRANSPARENT_BACKGROUND })
     .modulate({ brightness, saturation, hue })
     .linear(contrast, 0)
     .gamma(gamma);
@@ -219,6 +222,7 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
   console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%) gamma(${gamma.toFixed(2)}) ratio(${ratioX.toFixed(3)}x${ratioY.toFixed(3)}) perspective(${(perspectiveX * 100).toFixed(1)}%) skew(${skewDeg.toFixed(1)}°)`);
 
   return sharp(imageBuffer)
+    .ensureAlpha()
     .extract({
       left: cropX,
       top: cropY,
@@ -226,7 +230,7 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
       height: Math.max(cropHeight, 1),
     })
     .resize(Math.max(newWidth, 1), Math.max(newHeight, 1), { fit: 'fill' })
-    .affine(skewMatrix, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .affine(skewMatrix, { background: TRANSPARENT_BACKGROUND })
     .modulate({ brightness, saturation, hue })
     .gamma(gamma)
     .toBuffer();
