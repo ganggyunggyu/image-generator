@@ -29,7 +29,7 @@ const categorizeEyeKeyword = (keyword: string): string => {
   return '시력교정정보';
 };
 
-const PET_INFO_TOKENS = ['분양', '무료분양', '입양', '유기', '보호', '센터', '조건'] as const;
+const PET_INFO_TOKENS = ['분양', '무료분양', '입양', '유기', '보호', '센터', '조건', '펫샵', '파양'] as const;
 const PET_CAT_TOKENS = [
   '고양이',
   '코리안숏헤어',
@@ -46,6 +46,7 @@ const PET_CAT_TOKENS = [
   '먼치킨',
   '페르시안',
   '스핑크스',
+  '쇼트헤어',
   '뱅갈',
   '친칠라',
   '터키시',
