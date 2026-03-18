@@ -1,171 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pLimit from 'p-limit';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+  buildAiImagesResponse,
+  CORS_HEADERS,
+  DEFAULT_IMAGE_COUNT,
+  findBestMatchingFolder,
+  listFolders,
+  listImagesInFolder,
+  MAX_IMAGE_COUNT,
+  MIN_MATCHED_FOLDER_IMAGE_COUNT,
+  processAiImages,
+} from './lib';
 import { shuffleArrayInPlace } from '@/utils/array';
-import { applyLightDistortion, convertToPng } from '@/utils/image';
-import { uploadToS3 } from '@/shared/lib/s3';
+const parseCount = (rawCount: string | null): number => {
+  const parsedCount = Number.parseInt(rawCount || '', 10);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  if (Number.isNaN(parsedCount) || parsedCount < 1) {
+    return DEFAULT_IMAGE_COUNT;
+  }
+
+  return Math.min(parsedCount, MAX_IMAGE_COUNT);
 };
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
+export const OPTIONS = async () => NextResponse.json({}, { headers: CORS_HEADERS });
 
-const getS3Client = () =>
-  new S3Client({
-    region: process.env.AWS_S3_REGION || 'ap-northeast-2',
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-    },
-  });
-
-const BUCKET = process.env.AWS_S3_BUCKET || '';
-const REGION = process.env.AWS_S3_REGION || 'ap-northeast-2';
-const MIN_MATCHED_FOLDER_IMAGE_COUNT = 50;
-
-const normalize = (str: string): string => {
-  return str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
-};
-
-const findBestMatchingFolder = (keyword: string, folders: string[]): string | null => {
-  const normalizedKeyword = normalize(keyword);
-
-  // 1. 정확히 일치
-  const exactMatch = folders.find((f) => normalize(f) === normalizedKeyword);
-  if (exactMatch) return exactMatch;
-
-  // 2. 키워드가 폴더명에 포함
-  const containsMatch = folders.find((f) => normalize(f).includes(normalizedKeyword));
-  if (containsMatch) return containsMatch;
-
-  // 3. 폴더명이 키워드에 포함
-  const reverseMatch = folders.find((f) => normalizedKeyword.includes(normalize(f)));
-  if (reverseMatch) return reverseMatch;
-
-  // 4. 부분 일치 (키워드의 앞부분이 폴더명의 앞부분과 일치)
-  const partialMatch = folders.find((f) => {
-    const nf = normalize(f);
-    const minLen = Math.min(nf.length, normalizedKeyword.length, 5);
-    return nf.slice(0, minLen) === normalizedKeyword.slice(0, minLen);
-  });
-  if (partialMatch) return partialMatch;
-
-  return null;
-};
-
-const listFolders = async (prefix: string): Promise<string[]> => {
-  const folders: string[] = [];
-  let continuationToken: string | undefined;
-
-  do {
-    const response = await getS3Client().send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        Prefix: prefix,
-        Delimiter: '/',
-        ContinuationToken: continuationToken,
-      })
-    );
-
-    if (response.CommonPrefixes) {
-      for (const cp of response.CommonPrefixes) {
-        if (cp.Prefix) {
-          const folderName = cp.Prefix.replace(prefix, '').replace('/', '');
-          if (folderName) folders.push(folderName);
-        }
-      }
-    }
-
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
-
-  return folders;
-};
-
-const listImagesInFolder = async (folder: string): Promise<string[]> => {
-  const prefix = `images/${folder}/`;
-  const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
-  const images: string[] = [];
-  const client = getS3Client();
-  let continuationToken: string | undefined;
-
-  do {
-    const response = await client.send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      })
-    );
-
-    if (response.Contents) {
-      for (const item of response.Contents) {
-        const key = item.Key || '';
-        if (imageExtensions.some((ext) => key.toLowerCase().endsWith(ext))) {
-          images.push(`https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`);
-        }
-      }
-    }
-
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
-
-  return images;
-};
-
-interface ProductImages {
-  body: string[];
-  individual: string[];
-  slide: string[];
-  collage: string[];
-  excludeLibrary: string[];
-  excludeLibraryLink: string[];
-}
-
-interface AiImagesResponse {
-  images: ProductImages;
-  metadata: Record<string, never>;
-  keyword: string;
-  blogId: string;
-  category: string;
-  folder: string;
-  total: number;
-  failed: number;
-  folderImageCount: number;
-}
-
-const emptyImages: ProductImages = {
-  body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
-};
-
-const createEmptyResponse = (keyword: string, folderImageCount: number = 0): AiImagesResponse => ({
-  images: { ...emptyImages },
-  metadata: {},
-  keyword,
-  blogId: '',
-  category: '',
-  folder: '',
-  total: 0,
-  failed: 0,
-  folderImageCount,
-});
-
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
-    const keyword = searchParams.get('keyword') || '';
-    const count = Math.min(parseInt(searchParams.get('count') || '5'), 20);
+    const keyword = searchParams.get('keyword')?.trim() || '';
+    const count = parseCount(searchParams.get('count'));
     const distort = searchParams.get('distort') !== 'false';
 
     if (!keyword) {
       return NextResponse.json(
         { error: '키워드가 필요합니다' },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: CORS_HEADERS }
       );
     }
 
@@ -182,7 +50,7 @@ export async function GET(request: NextRequest) {
       console.log(`❌ 매칭 폴더 없음: "${keyword}"`);
       return NextResponse.json(
         { error: '매칭되는 이미지 폴더가 없습니다', keyword },
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
 
@@ -194,7 +62,7 @@ export async function GET(request: NextRequest) {
       );
       return NextResponse.json(
         { error: '이미지 수 부족', keyword, folder: matchedFolder, folderImageCount: allImageUrls.length },
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: CORS_HEADERS }
       );
     }
 
@@ -205,52 +73,29 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔄 ${matchedFolder}: ${allImageUrls.length}개 중 ${selected.length}개 선택`);
 
-    // 4. 이미지 처리 (왜곡 적용)
-    const limit = pLimit(5);
-    const bodyImages: string[] = [];
-    let failed = 0;
-
-    await Promise.all(
-      selected.map((imageUrl) =>
-        limit(async () => {
-          try {
-            const res = await fetch(imageUrl);
-            if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
-
-            const buffer = Buffer.from(await res.arrayBuffer());
-            const distorted = distort ? await applyLightDistortion(buffer) : buffer;
-            const pngBuffer = await convertToPng(distorted);
-            const { url } = await uploadToS3(pngBuffer, `ai-processed/${keyword}`, 'image/png');
-            bodyImages.push(url);
-          } catch (err) {
-            console.error(`❌ 처리 실패: ${imageUrl}`, err);
-            failed++;
-          }
-        })
-      )
-    );
+    const { bodyImages, failed } = await processAiImages({
+      distort,
+      imageUrls: selected,
+      keyword,
+    });
 
     console.log(`✅ 완료: ${bodyImages.length}개 성공, ${failed}개 실패`);
 
     return NextResponse.json(
-      {
-        images: { ...emptyImages, body: bodyImages },
-        metadata: {},
-        keyword,
-        blogId: '',
-        category: '',
-        folder: matchedFolder,
-        total: bodyImages.length,
+      buildAiImagesResponse({
+        bodyImages,
         failed,
+        folder: matchedFolder,
         folderImageCount: allImageUrls.length,
-      } satisfies AiImagesResponse,
-      { headers: corsHeaders }
+        keyword,
+      }),
+      { headers: CORS_HEADERS }
     );
   } catch (error) {
     console.error('❌ ai-images API 오류:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '알 수 없는 오류' },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
-}
+};
