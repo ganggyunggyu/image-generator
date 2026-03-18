@@ -9,7 +9,7 @@ export const applyFilter = async (
 ): Promise<Buffer> => {
   if (filter.id === 'none') return imageBuffer;
 
-  let sharpImage = sharp(imageBuffer);
+  let sharpImage = sharp(imageBuffer).rotate();
 
   switch (filter.type) {
     case 'grayscale':
@@ -103,7 +103,8 @@ export const applyFrame = async (
  * - 기울이기 (skew)
  */
 export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
-  const metadata = await sharp(imageBuffer).metadata();
+  const rotated = await sharp(imageBuffer).rotate().toBuffer();
+  const metadata = await sharp(rotated).metadata();
   const { width = 800, height = 600 } = metadata;
 
   // 강화된 랜덤 파라미터
@@ -144,7 +145,7 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
     1 - perspectiveX,
   ];
 
-  let sharpImage = sharp(imageBuffer)
+  let sharpImage = sharp(rotated)
     .ensureAlpha()
     .extract({
       left: cropX,
@@ -186,7 +187,8 @@ export const applyDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
  * - 기울이기 (skew)
  */
 export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer> => {
-  const metadata = await sharp(imageBuffer).metadata();
+  const rotated = await sharp(imageBuffer).rotate().toBuffer();
+  const metadata = await sharp(rotated).metadata();
   const { width = 800, height = 600 } = metadata;
 
   const brightness = 0.80 + Math.random() * 0.4; // 0.80 ~ 1.20
@@ -221,7 +223,7 @@ export const applyLightDistortion = async (imageBuffer: Buffer): Promise<Buffer>
 
   console.log(`🔀 가벼운 왜곡: bright(${brightness.toFixed(2)}) sat(${saturation.toFixed(2)}) hue(${hue}) crop(${(cropPercent * 100).toFixed(1)}%) gamma(${gamma.toFixed(2)}) ratio(${ratioX.toFixed(3)}x${ratioY.toFixed(3)}) perspective(${(perspectiveX * 100).toFixed(1)}%) skew(${skewDeg.toFixed(1)}°)`);
 
-  return sharp(imageBuffer)
+  return sharp(rotated)
     .ensureAlpha()
     .extract({
       left: cropX,

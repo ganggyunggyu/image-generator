@@ -29,6 +29,7 @@ interface ImageResponse {
   folder: string;
   total: number;
   failed: number;
+  folderImageCount?: number;
 }
 ```
 
@@ -212,7 +213,9 @@ GET /api/image/ai-images
 
 ### 이미지 처리
 
+- 매칭 폴더 이미지가 50장 이상일 때만 응답 처리, 50장 미만이면 미매칭으로 간주
 - 매칭 폴더 내 이미지 셔플 후 count개 선택
+- `folderImageCount`: 매칭된 원본 폴더의 전체 이미지 수
 - distort=true: light distortion 적용
 - 처리된 이미지를 S3에 업로드 (`search-images/ai-processed/{keyword}/`)
 
@@ -239,6 +242,7 @@ S3 URL (`https://{bucket}.s3.{region}.amazonaws.com/search-images/ai-processed/.
   "blogId": "",
   "category": "",
   "folder": "강아지",
+  "folderImageCount": 37,
   "total": 5,
   "failed": 0
 }

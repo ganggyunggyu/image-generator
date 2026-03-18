@@ -15,7 +15,9 @@
     "scripts/process-input-folders.ts",
     "scripts/generate-keyword-category-txt.ts",
     "scripts/upload-all-products.ts",
-    "scripts/upload-output-root.ts"
+    "scripts/upload-output-root.ts",
+    "scripts/light-distortion-5x.ts",
+    "scripts/apply-light-distortion-batch.ts"
   ],
   "exclude": [
     "scripts/__tests__/**"

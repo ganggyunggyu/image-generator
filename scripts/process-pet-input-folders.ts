@@ -5,7 +5,7 @@ import { type Metadata, parsePetMetadata } from './lib/metadata-parser';
 import { listSubdirectories, listFiles } from './lib/local-fs';
 
 const BASE = process.cwd();
-const INPUT_DIR = path.join(BASE, '_samples', 'input', '애견_입력');
+const INPUT_DIR = path.join(BASE, '_samples', 'input', '애견입력');
 const OUTPUT_DIR = path.join(BASE, '_samples', 'output', '애견_출력');
 
 fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });

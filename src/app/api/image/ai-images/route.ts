@@ -26,6 +26,7 @@ const getS3Client = () =>
 
 const BUCKET = process.env.AWS_S3_BUCKET || '';
 const REGION = process.env.AWS_S3_REGION || 'ap-northeast-2';
+const MIN_MATCHED_FOLDER_IMAGE_COUNT = 50;
 
 const normalize = (str: string): string => {
   return str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
@@ -90,23 +91,29 @@ const listImagesInFolder = async (folder: string): Promise<string[]> => {
   const prefix = `images/${folder}/`;
   const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
   const images: string[] = [];
+  const client = getS3Client();
+  let continuationToken: string | undefined;
 
-  const response = await getS3Client().send(
-    new ListObjectsV2Command({
-      Bucket: BUCKET,
-      Prefix: prefix,
-      MaxKeys: 100,
-    })
-  );
+  do {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    );
 
-  if (response.Contents) {
-    for (const item of response.Contents) {
-      const key = item.Key || '';
-      if (imageExtensions.some((ext) => key.toLowerCase().endsWith(ext))) {
-        images.push(`https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`);
+    if (response.Contents) {
+      for (const item of response.Contents) {
+        const key = item.Key || '';
+        if (imageExtensions.some((ext) => key.toLowerCase().endsWith(ext))) {
+          images.push(`https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`);
+        }
       }
     }
-  }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
 
   return images;
 };
@@ -120,9 +127,33 @@ interface ProductImages {
   excludeLibraryLink: string[];
 }
 
+interface AiImagesResponse {
+  images: ProductImages;
+  metadata: Record<string, never>;
+  keyword: string;
+  blogId: string;
+  category: string;
+  folder: string;
+  total: number;
+  failed: number;
+  folderImageCount: number;
+}
+
 const emptyImages: ProductImages = {
   body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
 };
+
+const createEmptyResponse = (keyword: string, folderImageCount: number = 0): AiImagesResponse => ({
+  images: { ...emptyImages },
+  metadata: {},
+  keyword,
+  blogId: '',
+  category: '',
+  folder: '',
+  total: 0,
+  failed: 0,
+  folderImageCount,
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -150,24 +181,25 @@ export async function GET(request: NextRequest) {
     if (!matchedFolder) {
       console.log(`❌ 매칭 폴더 없음: "${keyword}"`);
       return NextResponse.json(
-        {
-          images: { ...emptyImages },
-          metadata: {},
-          keyword,
-          blogId: '',
-          category: '',
-          folder: '',
-          total: 0,
-          failed: 0,
-        },
-        { headers: corsHeaders }
+        { error: '매칭되는 이미지 폴더가 없습니다', keyword },
+        { status: 404, headers: corsHeaders }
       );
     }
 
-    console.log(`✅ 매칭 폴더: "${matchedFolder}"`);
-
     // 3. 폴더 내 이미지 가져오기
     const allImageUrls = await listImagesInFolder(matchedFolder);
+    if (allImageUrls.length < MIN_MATCHED_FOLDER_IMAGE_COUNT) {
+      console.log(
+        `❌ 매칭 폴더 없음: "${keyword}" (후보: "${matchedFolder}", 이미지 ${allImageUrls.length}개 < ${MIN_MATCHED_FOLDER_IMAGE_COUNT}개)`
+      );
+      return NextResponse.json(
+        { error: '이미지 수 부족', keyword, folder: matchedFolder, folderImageCount: allImageUrls.length },
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    console.log(`✅ 매칭 폴더: "${matchedFolder}" (이미지 ${allImageUrls.length}개)`);
+
     const shuffled = shuffleArrayInPlace([...allImageUrls]);
     const selected = shuffled.slice(0, count);
 
@@ -210,7 +242,8 @@ export async function GET(request: NextRequest) {
         folder: matchedFolder,
         total: bodyImages.length,
         failed,
-      },
+        folderImageCount: allImageUrls.length,
+      } satisfies AiImagesResponse,
       { headers: corsHeaders }
     );
   } catch (error) {

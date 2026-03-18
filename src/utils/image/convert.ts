@@ -15,6 +15,7 @@ export interface ConvertToWebpOptions {
 const tryTrimWhiteBorder = async (imageBuffer: Buffer): Promise<Buffer> => {
   try {
     const trimmed = await sharp(imageBuffer)
+      .rotate()
       .trim({
         threshold: 40,
       })
@@ -50,7 +51,7 @@ export const convertToPng = async (
   try {
     const { width, height, quality = 9 } = options;
 
-    let sharpImage = sharp(imageBuffer);
+    let sharpImage = sharp(imageBuffer).rotate();
 
     if (width && height) {
       sharpImage = sharpImage.resize(width, height, { fit: 'fill' });
@@ -78,7 +79,7 @@ export const convertToWebp = async (
 
     const { width, height, quality = 92, trimWhiteBorder = false } = options;
 
-    const sharpImage = sharp(imageBuffer);
+    const sharpImage = sharp(imageBuffer).rotate();
     const metadata = await sharpImage.metadata();
 
     console.log('📸💎 원본 이미지 정보 확인!! 🔍✨', {
@@ -88,11 +89,12 @@ export const convertToWebp = async (
     });
 
     const processedBuffer = trimWhiteBorder
-      ? await tryTrimWhiteBorder(imageBuffer)
-      : imageBuffer;
+      ? await tryTrimWhiteBorder(await sharp(imageBuffer).rotate().toBuffer())
+      : await sharp(imageBuffer).rotate().toBuffer();
 
-    const targetWidth = width || metadata.width;
-    const targetHeight = height || metadata.height;
+    const processedMeta = await sharp(processedBuffer).metadata();
+    const targetWidth = width || processedMeta.width;
+    const targetHeight = height || processedMeta.height;
 
     const webpBuffer = await sharp(processedBuffer)
       .resize(targetWidth, targetHeight, {
