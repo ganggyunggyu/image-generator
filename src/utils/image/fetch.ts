@@ -8,7 +8,7 @@ export const fetchImageBuffer = async (imageUrl: string, retryCount: number = 3)
       // URL 인코딩: 한글/특수문자 처리
       let encodedUrl = imageUrl;
       try {
-        const urlObj = new URL(imageUrl);
+        new URL(imageUrl);
         // 이미 인코딩된 URL은 그대로 사용
         encodedUrl = imageUrl;
       } catch {

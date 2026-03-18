@@ -85,8 +85,6 @@ export async function POST(request: NextRequest) {
 
           console.log(`🔄✨ 이미지 처리 중!! ${index + 1}/${body.images.length} 🚀💨 ${imageData.title}${hasEffects ? ' (효과 적용)' : ''}`);
 
-          let finalBuffer: Buffer;
-
           let imageBuffer: Buffer | null = null;
           let lastFetchError: Error | null = null;
 
@@ -115,7 +113,7 @@ export async function POST(request: NextRequest) {
             processedBuffer = await applyEffects(imageBuffer, actualFilter, actualFrame);
           }
 
-          finalBuffer = await convertToWebp(processedBuffer, {
+          const finalBuffer = await convertToWebp(processedBuffer, {
             quality: 92,
           });
 

@@ -1,4 +1,4 @@
-import { FrameStyle, FilterStyle, DownloadOptions } from './types';
+import { FrameStyle, DownloadOptions } from './types';
 import { FILTER_STYLES } from './constants';
 import { drawFrameBackground, drawInnerBorder, drawFramePattern } from './canvas-utils';
 import { applyImageFilter } from './filters';

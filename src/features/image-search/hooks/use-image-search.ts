@@ -73,7 +73,7 @@ export const useImageSearch = () => {
     }
   };
 
-  const handleImageClick = (imageUrl: string, title: string) => {
+  const handleImageClick = (imageUrl: string, _title: string) => {
     window.open(imageUrl, '_blank', 'noopener,noreferrer');
   };
 

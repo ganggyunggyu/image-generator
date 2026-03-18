@@ -37,10 +37,10 @@ export const drawFramePattern = (
   frameStyle: FrameStyle,
   canvasWidth: number,
   canvasHeight: number,
-  imageX: number,
-  imageY: number,
-  imgWidth: number,
-  imgHeight: number
+  _imageX: number,
+  _imageY: number,
+  _imgWidth: number,
+  _imgHeight: number
 ) => {
   const { pattern, borderWidth } = frameStyle;
 

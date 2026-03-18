@@ -1,6 +1,6 @@
 import pLimit from 'p-limit';
 import { fetchImageBuffer, convertToPng, applyFrame, applyLightDistortion, applyEffects } from '@/utils/image';
-import { selectRandomFrame, selectRandomFilter, FilterStyle, FrameStyle } from '@/shared/lib/frame-filter';
+import { selectRandomFrame, selectRandomFilter, FilterStyle } from '@/shared/lib/frame-filter';
 import { uploadToS3 } from '@/shared/lib/s3';
 
 const MAX_CONCURRENT = 5;
@@ -32,7 +32,7 @@ export const processImages = async (
   currentImages: ImageItem[],
   options: ProcessImagesOptions
 ): Promise<ProcessImagesResult> => {
-  const { useS3, folderName, useFilter = true, distortionLevel = 'heavy', keepOriginal = false } = options;
+  const { useS3, folderName, useFilter = true, distortionLevel = 'heavy', keepOriginal: _keepOriginal = false } = options;
   const limit = pLimit(MAX_CONCURRENT);
   const images = [...currentImages];
   let failed = 0;

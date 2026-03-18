@@ -7,7 +7,6 @@ import { cn } from '@/shared/lib';
 export const ResultsSection: React.FC = () => {
   const {
     results,
-    totalResults,
     query,
     loading,
     error,
