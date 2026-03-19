@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pLimit from 'p-limit';
 import { listS3Images, isS3Configured, readS3TextFile, uploadToS3 } from '@/shared/lib/s3';
+import { resolveCategoryMetadata } from '@/shared/lib/category-metadata/resolve-category-metadata';
 import { applyLightDistortion } from '@/utils/image';
 
 const corsHeaders = {
@@ -58,6 +59,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || '';
+    const keyword = searchParams.get('keyword') || '';
+    const dateCode = searchParams.get('dateCode') || '';
+    const blogName = searchParams.get('blogName') || '';
     const count = Math.min(parseInt(searchParams.get('count') || '5', 10) || 5, 20);
     const subfolder = searchParams.get('subfolder') || '본문';
 
@@ -126,12 +130,20 @@ export async function GET(request: NextRequest) {
       console.log('ℹ️ metadata.json 없음');
     }
 
+    const resolvedMetadata = await resolveCategoryMetadata({
+      category,
+      keyword,
+      dateCode,
+      blogName,
+      baseMetadata: metadata,
+    });
+
     console.log(`✅ ${folder}: ${bodyImages.length}/${picked.length}장 처리 완료`);
 
     return NextResponse.json(
       {
         images: { ...emptyImages, body: bodyImages },
-        metadata,
+        metadata: resolvedMetadata,
         keyword: category,
         blogId: '',
         category,

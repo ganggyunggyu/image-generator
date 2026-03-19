@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pLimit from 'p-limit';
 import { listS3Images, listS3Folders, readS3TextFile, renameS3Folder, isS3Configured } from '@/shared/lib/s3';
+import { resolveCategoryMetadata } from '@/shared/lib/category-metadata/resolve-category-metadata';
 import { applyLightDistortion } from '@/utils/image';
 
 const corsHeaders = {
@@ -54,6 +55,7 @@ type ResponseKey = (typeof FOLDER_MAP)[S3FolderName];
 
 const S3_FOLDERS = Object.keys(FOLDER_MAP) as S3FolderName[];
 const NO_DISTORT_FOLDERS: S3FolderName[] = ['라이브러리제외', '라이브러리제외_링크'];
+const CATEGORY_MODE_MAX_IMAGES = 5;
 
 const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
 const stripSuffix = (str: string): string => str.replace(/_\d+$/, '');
@@ -83,26 +85,39 @@ const emptyImages: ProductImages = {
   body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
 };
 
-async function loadImages(folder: string) {
+async function loadImages(folder: string, options: { maxTotalCount?: number } = {}) {
+  const { maxTotalCount } = options;
   const limit = pLimit(5);
   const images: ProductImages = { ...emptyImages, body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [] };
   let totalCount = 0;
   let totalFailed = 0;
 
   for (const s3Folder of S3_FOLDERS) {
+    if (maxTotalCount !== undefined && totalCount >= maxTotalCount) {
+      break;
+    }
+
     const subPath = `${folder}/${s3Folder}`;
     const items = await listS3Images(subPath, 1000);
 
     if (items.length === 0) continue;
 
     items.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
-    console.log(`📂 ${s3Folder}: ${items.length}개 발견`);
+
+    const remainingCount = maxTotalCount === undefined ? items.length : Math.max(maxTotalCount - totalCount, 0);
+
+    if (remainingCount === 0) {
+      break;
+    }
+
+    const selectedItems = items.slice(0, remainingCount);
+    console.log(`📂 ${s3Folder}: ${selectedItems.length}개 선택 (${items.length}개 발견)`);
 
     const responseKey: ResponseKey = FOLDER_MAP[s3Folder];
     const skipDistort = NO_DISTORT_FOLDERS.includes(s3Folder);
 
     const results = await Promise.all(
-      items.map((item) =>
+      selectedItems.map((item) =>
         limit(async () => {
           try {
             const res = await fetch(item.url);
@@ -150,6 +165,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const keyword = searchParams.get('keyword') || '';
+    const dateCode = searchParams.get('dateCode') || '';
+    const blogName = searchParams.get('blogName') || '';
     const blogId = searchParams.get('blogId') || '';
     const category = searchParams.get('category') || '';
 
@@ -158,12 +175,21 @@ export async function GET(request: NextRequest) {
       const folder = `category-images/${category}`;
       console.log(`📦 카테고리 조회: ${folder}`);
 
-      const { images, metadata, totalCount, totalFailed } = await loadImages(folder);
+      const { images, metadata, totalCount, totalFailed } = await loadImages(folder, {
+        maxTotalCount: CATEGORY_MODE_MAX_IMAGES,
+      });
+      const resolvedMetadata = await resolveCategoryMetadata({
+        category,
+        keyword,
+        dateCode,
+        blogName,
+        baseMetadata: metadata,
+      });
 
       console.log(`✅ ${folder} 완료: ${totalCount}개 성공, ${totalFailed}개 실패`);
 
       const response: ResponseBody = {
-        images, metadata, keyword: '', blogId: '', category, folder: category,
+        images, metadata: resolvedMetadata, keyword: '', blogId: '', category, folder: category,
         total: totalCount, failed: totalFailed,
       };
 
