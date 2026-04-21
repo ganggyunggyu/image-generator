@@ -12,9 +12,27 @@ GET /api/image/product-images
 |-----------|------|----------|-------------|
 | `keyword` | string | Yes | Product keyword (matched to S3 folder) |
 | `blogId` | string | No | Blog ID for per-blog image pool |
+| `manuscriptType` | string | No | `alibaba` 면 알리바바 전용 본문 body 풀 사용 |
 
 - `blogId` 있음 → `product-images/{blogId}/{keyword}/` 탐색
 - `blogId` 없음 → `product-images/{keyword}/` 탐색
+
+## Alibaba Body Override
+
+`manuscriptType=alibaba` 이고 `blogId` 가 있을 때는 `images.body` 를 상품 폴더의 `본문/` 대신 로컬 `알리바바_본문` 풀에서 채운다.
+
+- `weed3122`, `mad1651`, `chemical12568`, `1`, `2`, `3`, `알리바바1`, `알리바바2`, `알리바바3`, `qwzx16`
+  → `_samples/알리바바_본문/알리바바1~3`
+- `copy11525`, `individual14144`, `4`, `5`, `알리바바4`, `알리바바5`
+  → `_samples/알리바바_본문/알리바바4~5`
+
+동작 규칙:
+
+1. 매칭된 본문 풀에서 5장을 랜덤 선택함
+2. 각 이미지는 `applyLightDistortion` 을 적용해 base64 data URI로 반환함
+3. `excludeLibrary`, `excludeLibraryLink`, metadata 는 기존 `product-images/{blogId}/{keyword}/...` 경로를 그대로 사용함
+4. `total` 은 알리바바 body 5장과 기존 상품 이미지 수를 합산함
+5. S3 상품 폴더 매칭이 없어도 알리바바 본문 풀 매칭만 되면 `images.body` 5장을 반환하고, 이 경우 `folder` 는 빈 문자열이며 library/metadata 는 비어 있음
 
 ## S3 Folder Structure
 
@@ -26,6 +44,7 @@ product-images/
 │   ├── 슬라이드/          → slide
 │   ├── 콜라주/            → collage
 │   ├── 라이브러리제외/     → excludeLibrary
+│   ├── 라이브러리제외이미지/ → excludeLibrary
 │   ├── 라이브러리제외_링크/ → excludeLibraryLink
 │   └── metadata.json
 └── {blogId}/                         ← blogId로 접근
@@ -134,6 +153,7 @@ S3 탐색 경로: `product-images/blog_abc/말티즈/`
 | `slide` | 슬라이드 | Yes |
 | `collage` | 콜라주 | Yes |
 | `excludeLibrary` | 라이브러리제외 | No |
+| `excludeLibrary` | 라이브러리제외이미지 | No |
 | `excludeLibraryLink` | 라이브러리제외_링크 | No |
 
 Distortion params: brightness(0.85~1.15), saturation(0.85~1.15), hue(-8~+8), crop(1~7%)

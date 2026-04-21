@@ -4,6 +4,12 @@
   body {
     @apply relative overflow-x-hidden;
     background: #fafaf8;
+    font-family:
+      'Pretendard',
+      'Apple SD Gothic Neo',
+      'Noto Sans KR',
+      system-ui,
+      sans-serif;
     min-height: 100vh;
   }
 }

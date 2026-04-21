@@ -103,6 +103,66 @@ describe('GET /api/image/product-images', () => {
     );
   });
 
+  it('라이브러리제외이미지 폴더도 excludeLibrary 응답에 포함함', async () => {
+    listS3Images.mockImplementation(async (folder: string) => {
+      if (folder.endsWith('/라이브러리제외이미지')) {
+        return [{ url: 'https://example.com/alibaba.webp', key: `${folder}/image_1.webp` }];
+      }
+
+      return [];
+    });
+
+    const request = new Request(
+      'http://localhost/api/image/product-images?keyword=%ED%95%9C%EB%A0%A4%EB%8B%B4%EC%9B%90&blogId=blog-a'
+    ) as unknown as NextRequest;
+
+    const response = await GET(request);
+    const body = await response.json() as {
+      images: { excludeLibrary: string[] };
+      total: number;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.images.excludeLibrary).toEqual(['https://example.com/alibaba.webp']);
+    expect(body.total).toBe(1);
+  });
+
+  it('알리바바 타입도 S3 본문 이미지를 그대로 사용함', async () => {
+    listS3Folders.mockResolvedValue(['1688사입하는법']);
+    listS3Images.mockImplementation(async (folder: string) => {
+      if (folder.endsWith('/본문')) {
+        return Array.from({ length: 5 }, (_, index) => ({
+          url: `https://example.com/body-${index + 1}.webp`,
+          key: `${folder}/image_${index + 1}.webp`,
+        }));
+      }
+
+      if (folder.endsWith('/라이브러리제외이미지')) {
+        return [{ url: 'https://example.com/alibaba.webp', key: `${folder}/image_1.webp` }];
+      }
+
+      return [];
+    });
+
+    const request = new Request(
+      'http://localhost/api/image/product-images?keyword=1688%EC%82%AC%EC%9E%85%ED%95%98%EB%8A%94%EB%B2%95&blogId=weed3122&manuscriptType=alibaba'
+    ) as unknown as NextRequest;
+
+    const response = await GET(request);
+    const body = await response.json() as {
+      images: { body: string[]; excludeLibrary: string[] };
+      total: number;
+      folder: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.folder).toBe('1688사입하는법');
+    expect(body.images.body).toHaveLength(5);
+    expect(body.images.body[0]?.startsWith('data:image/webp;base64,')).toBe(true);
+    expect(body.images.excludeLibrary).toHaveLength(1);
+    expect(body.total).toBe(6);
+  });
+
   it('매칭 폴더가 없으면 빈 응답을 반환함', async () => {
     listS3Folders.mockResolvedValue(['다른폴더']);
 

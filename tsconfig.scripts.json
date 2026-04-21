@@ -10,8 +10,14 @@
     "skipLibCheck": true
   },
   "include": [
+    "scripts/build-check.ts",
     "scripts/lib/**/*.ts",
+    "scripts/check-commit-message.ts",
+    "scripts/harness-check.ts",
+    "scripts/setup-git-hooks.ts",
+    "scripts/verify-task.ts",
     "scripts/process-pet-input-folders.ts",
+    "scripts/process-alibaba-input-folders.ts",
     "scripts/process-input-folders.ts",
     "scripts/generate-keyword-category-txt.ts",
     "scripts/upload-all-products.ts",

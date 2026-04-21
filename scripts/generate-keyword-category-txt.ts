@@ -32,6 +32,7 @@ const categorizeEyeKeyword = (keyword: string): string => {
 const PET_INFO_TOKENS = ['분양', '무료분양', '입양', '유기', '보호', '센터', '조건', '펫샵', '파양'] as const;
 const PET_CAT_TOKENS = [
   '고양이',
+  '코숏',
   '묘',
   '코리안숏헤어',
   '숏헤어',
@@ -45,6 +46,7 @@ const PET_CAT_TOKENS = [
   '샴',
   '아비시니안',
   '먼치킨',
+  '메인쿤',
   '페르시안',
   '스핑크스',
   '쇼트헤어',

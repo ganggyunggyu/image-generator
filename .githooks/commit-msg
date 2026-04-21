@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+pnpm -s scripts:build
+node dist-scripts/scripts/check-commit-message.js "$1"

@@ -20,12 +20,14 @@ ls -laR _samples/examples/안과예시/
 
 ```bash
 pnpm -s process:pet
+pnpm -s process:alibaba
 pnpm -s process:eye
 ```
 
 출력 위치는 아래와 같음.
 
 - `_samples/output/애견_출력/{블로그명}/{키워드}/...`
+- `_samples/output/알리바바_출력/{blogId}/{키워드}/라이브러리제외이미지/...`
 - `_samples/output/안과_출력/{blogId}/{키워드}/...`
 
 ## 4) 출력 검토
@@ -70,6 +72,12 @@ pnpm -s upload:blog -- "./_samples/output/애견_출력/맛집 탐험대"
 
 # 애견: 루트 폴더 업로드 (안에 있는 블로그 폴더 전부 업로드, 계정 매칭 자동)
 pnpm -s upload:blog -- "./_samples/output/애견_출력"
+
+# 알리바바: 폴더명이 blogId인 케이스
+pnpm -s upload:blog -- "./_samples/output/알리바바_출력/lesyt"
+
+# 알리바바: 루트 폴더 업로드 (안에 있는 blogId 폴더 전부 업로드)
+pnpm -s upload:blog -- "./_samples/output/알리바바_출력"
 
 # 안과: 폴더명이 blogId인 케이스 (blogId 자동 추론됨)
 pnpm -s upload:blog -- "./_samples/output/안과_출력/mixxut"

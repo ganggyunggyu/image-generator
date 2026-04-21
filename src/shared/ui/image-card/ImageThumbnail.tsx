@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element -- 검색 썸네일은 프록시/원격 URL 이 혼합됨 */
+import type { MouseEvent } from 'react';
 import { cn } from '@/shared/lib';
 
 interface ImageThumbnailProps {
@@ -15,45 +17,61 @@ export const ImageThumbnail = ({
   onSimpleDownload,
   onAdvancedDownload,
 }: ImageThumbnailProps) => {
+  const handlePreviewButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onImageClick();
+  };
+
+  const handleSimpleDownloadButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onSimpleDownload();
+  };
+
+  const handleAdvancedDownloadButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onAdvancedDownload();
+  };
+
   return (
-    <div className="aspect-square relative overflow-hidden bg-gray-50">
+    <div className={cn('relative aspect-square overflow-hidden bg-gray-50')}>
       <img
         src={thumbnailUrl}
         alt={title}
         className={cn(
-          "w-full h-full object-cover cursor-pointer",
-          "transition-transform duration-200",
-          "group-hover:scale-105"
+          'h-full w-full cursor-pointer object-cover',
+          'transition-transform duration-200',
+          'group-hover:scale-105'
         )}
         onClick={onImageClick}
       />
 
-      {/* 호버 오버레이 */}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-200',
+          'group-hover:pointer-events-auto group-hover:opacity-100'
+        )}
+      >
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onImageClick();
-          }}
-          className="px-3 py-1.5 bg-white text-gray-900 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+          onClick={handlePreviewButtonClick}
+          className={cn(
+            'rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 transition-colors hover:bg-gray-100'
+          )}
         >
           보기
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSimpleDownload();
-          }}
-          className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+          onClick={handleSimpleDownloadButtonClick}
+          className={cn(
+            'rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600'
+          )}
         >
           다운
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdvancedDownload();
-          }}
-          className="px-3 py-1.5 bg-gray-700 text-white text-xs font-semibold rounded-lg hover:bg-gray-800 transition-colors"
+          onClick={handleAdvancedDownloadButtonClick}
+          className={cn(
+            'rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800'
+          )}
         >
           효과
         </button>

@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { BLOG_NAME_TO_NAVER_ID } from './lib/blog-account-map';
+import { resolveNaverId } from './lib/blog-account-map';
 import { listSubdirectories } from './lib/local-fs';
 import { uploadProductFolder } from './lib/upload-folder';
 
@@ -17,16 +17,7 @@ const flags = new Set(args.slice(1));
 const verbose = flags.has('--verbose');
 const dryRun = flags.has('--dry-run');
 
-const normalizeKey = (value: string): string => value.normalize('NFC').trim();
-const isLikelyBlogId = (value: string): boolean => /^[a-z0-9_]+$/i.test(value);
-
-const resolveBlogId = (folderName: string): string => {
-  const key = normalizeKey(folderName);
-  const mapped = BLOG_NAME_TO_NAVER_ID[key];
-  if (mapped) return mapped;
-  if (isLikelyBlogId(key)) return key;
-  return '';
-};
+const resolveBlogId = (folderName: string): string => resolveNaverId(folderName);
 
 const loadBlogTargets = (rootDir: string): { targets: BlogTarget[]; unmapped: string[] } => {
   const blogFolders = listSubdirectories(rootDir);
@@ -104,4 +95,3 @@ const handleError = (err: unknown): void => {
 };
 
 main().catch(handleError);
-

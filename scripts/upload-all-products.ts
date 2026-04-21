@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { listSubdirectories } from './lib/local-fs';
 import { uploadProductFolder } from './lib/upload-folder';
-import { BLOG_NAME_TO_NAVER_ID } from './lib/blog-account-map';
+import { resolveNaverId } from './lib/blog-account-map';
 import { SUB_FOLDERS } from './lib/constants';
 
 const rawArgs = process.argv.slice(2);
@@ -18,20 +18,7 @@ for (const arg of args) {
 const outputDir = positionals[0] || '';
 const blogIdArg = positionals[1] || '';
 
-const normalizeKey = (value: string): string => value.normalize('NFC').trim();
-
-const isLikelyBlogId = (value: string): boolean => /^[a-z0-9_]+$/i.test(value);
-
-const resolveBlogId = (folderNameOrId: string): string => {
-  const key = normalizeKey(folderNameOrId);
-
-  const mapped = BLOG_NAME_TO_NAVER_ID[key];
-  if (mapped) return mapped;
-
-  if (isLikelyBlogId(key)) return key;
-
-  return '';
-};
+const resolveBlogId = (folderNameOrId: string): string => resolveNaverId(folderNameOrId);
 
 const isBlogOutputFolder = (dirPath: string): boolean => {
   try {
@@ -128,7 +115,7 @@ const main = async (): Promise<void> => {
   }
 
   const resolvedOutputDir = path.resolve(outputDir);
-  const leaf = normalizeKey(path.basename(resolvedOutputDir));
+  const leaf = path.basename(resolvedOutputDir);
 
   if (blogIdArg) {
     const total = await uploadSingleBlogFolder({ blogDir: resolvedOutputDir, blogId: blogIdArg });

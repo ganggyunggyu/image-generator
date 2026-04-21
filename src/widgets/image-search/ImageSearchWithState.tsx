@@ -1,8 +1,13 @@
 'use client';
 
 import React from 'react';
+import { cn } from '@/shared/lib';
 import { SearchForm, LoadingSpinner, ErrorMessage } from '@/shared/ui';
 import { useImageSearch, useBulkDownload } from '@/features/image-search';
+import {
+  PetProcessorPanel,
+  getPetProcessorPreset,
+} from '@/features/pet-processor';
 import { SearchHeader, ResultsHeader, EmptyState, ResultsGrid } from './ui';
 
 export const ImageSearchWithState: React.FC = () => {
@@ -30,11 +35,17 @@ export const ImageSearchWithState: React.FC = () => {
     clearSelection,
     handleBulkDownload,
   } = useBulkDownload();
+  const defaultPetPreset = getPetProcessorPreset();
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className={cn('min-h-screen px-4 py-8')}>
+      <div className={cn('mx-auto max-w-6xl')}>
         <SearchHeader />
+
+        <PetProcessorPanel
+          currentQuery={query}
+          onQuerySelect={setQuery}
+        />
 
         <SearchForm
           query={query}
@@ -43,6 +54,7 @@ export const ImageSearchWithState: React.FC = () => {
           loading={loading}
           sortOrder={sortOrder}
           onSortOrderChange={setSortOrder}
+          placeholder={defaultPetPreset.placeholder}
         />
 
         {loading && (
@@ -55,7 +67,7 @@ export const ImageSearchWithState: React.FC = () => {
         {error && <ErrorMessage error={error} title="검색 오류" />}
 
         {results.length > 0 && (
-          <>
+          <React.Fragment>
             <ResultsHeader
               totalResults={totalResults}
               resultsCount={results.length}
@@ -74,7 +86,7 @@ export const ImageSearchWithState: React.FC = () => {
               onImageClick={handleImageClick}
               onDownload={handleDownload}
             />
-          </>
+          </React.Fragment>
         )}
 
         {!loading && !error && results.length === 0 && query && (
