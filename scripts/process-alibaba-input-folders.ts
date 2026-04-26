@@ -1,32 +1,32 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import { resolveNaverId } from './lib/blog-account-map';
-import { resolveExistingDirectory } from './lib/input-paths';
+import { findMatchingSubdirectories, resolveExistingDirectory } from './lib/input-paths';
 import { writeKeywordAccountMappingFile } from './lib/keyword-account-map';
 import { processPetInputFolders } from './lib/process-pet-input';
 
 const BASE = process.cwd();
 const inputBase = path.join(BASE, '_samples', 'input');
 
-const findAlibabaSubfolder = (): string[] => {
-  if (!fs.existsSync(inputBase)) return [];
-  return fs.readdirSync(inputBase)
-    .filter((name) => name.normalize('NFC').includes('알리바바'))
-    .map((name) => path.join(inputBase, name));
+const resolveAlibabaInputDirs = (): string[] => {
+  const matchingInputDirs = findMatchingSubdirectories(inputBase, '알리바바');
+  if (matchingInputDirs.length > 0) return matchingInputDirs;
+
+  return [
+    resolveExistingDirectory([
+      path.join(inputBase, '알리바바입력'),
+      path.join(inputBase, '알리바바_입력'),
+      path.join(inputBase, '애견입력'),
+      path.join(inputBase, '애견_입력'),
+      path.join(inputBase),
+    ]),
+  ];
 };
 
-const INPUT_DIR = resolveExistingDirectory([
-  path.join(inputBase, '알리바바입력'),
-  path.join(inputBase, '알리바바_입력'),
-  ...findAlibabaSubfolder(),
-  path.join(inputBase, '애견입력'),
-  path.join(inputBase, '애견_입력'),
-  path.join(inputBase),
-]);
+const INPUT_DIRS = resolveAlibabaInputDirs();
 const OUTPUT_DIR = path.join(BASE, '_samples', 'output', '알리바바_출력');
 
 const result = processPetInputFolders({
-  inputDir: INPUT_DIR,
+  inputDirs: INPUT_DIRS,
   targets: [
     {
       label: '알리바바',
@@ -43,6 +43,8 @@ const result = processPetInputFolders({
     },
   ],
 });
+
+console.log(`입력 폴더: ${INPUT_DIRS.map((dir) => path.basename(dir)).join(' -> ')}`);
 
 const grandTotal = result.blogs.reduce(
   (sum, blog) => sum + blog.keywords.reduce((keywordSum, keyword) => keywordSum + keyword.libraryCount, 0),

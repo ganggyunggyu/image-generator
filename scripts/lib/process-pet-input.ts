@@ -17,7 +17,8 @@ export interface PetOutputTarget {
 }
 
 interface ProcessPetInputFoldersOptions {
-  inputDir: string;
+  inputDir?: string;
+  inputDirs?: string[];
   targets: PetOutputTarget[];
 }
 
@@ -50,6 +51,16 @@ const readMetadata = (srcDir: string): Metadata => {
 
   const content = fs.readFileSync(txtPath, 'utf-8');
   return parsePetMetadata(content);
+};
+
+const resolveInputDirs = (inputDir: string | undefined, inputDirs: string[] | undefined): string[] => {
+  const resolvedInputDirs = inputDirs && inputDirs.length > 0 ? inputDirs : inputDir ? [inputDir] : [];
+
+  if (resolvedInputDirs.length === 0) {
+    throw new Error('No input directories provided');
+  }
+
+  return resolvedInputDirs;
 };
 
 const writeKeywordOutput = ({
@@ -88,10 +99,12 @@ const writeKeywordOutput = ({
 
 export const processPetInputFolders = ({
   inputDir,
+  inputDirs,
   targets,
 }: ProcessPetInputFoldersOptions): ProcessPetInputFoldersResult => {
-  const blogNames = listSubdirectories(inputDir);
+  const resolvedInputDirs = resolveInputDirs(inputDir, inputDirs);
   const blogs: ProcessedBlogSummary[] = [];
+  const blogsByName = new Map<string, ProcessedBlogSummary>();
   let grandTotal = 0;
 
   for (const target of targets) {
@@ -99,26 +112,34 @@ export const processPetInputFolders = ({
     fs.mkdirSync(target.outputDir, { recursive: true });
   }
 
-  for (const blogName of blogNames) {
-    const blogDir = path.join(inputDir, blogName);
-    const keywords = listSubdirectories(blogDir);
-    const keywordSummaries: ProcessedKeywordSummary[] = [];
+  for (const sourceInputDir of resolvedInputDirs) {
+    const blogNames = listSubdirectories(sourceInputDir);
 
-    for (const keyword of keywords) {
-      const srcDir = path.join(blogDir, keyword);
-      const libraryFiles = listLibraryFiles(srcDir);
-      const metadata = readMetadata(srcDir);
+    for (const blogName of blogNames) {
+      const blogDir = path.join(sourceInputDir, blogName);
+      const keywords = listSubdirectories(blogDir);
+      let blogSummary = blogsByName.get(blogName);
 
-      for (const target of targets) {
-        writeKeywordOutput({ srcDir, target, blogName, keyword, libraryFiles, metadata });
+      if (!blogSummary) {
+        blogSummary = { blogName, keywords: [] };
+        blogsByName.set(blogName, blogSummary);
+        blogs.push(blogSummary);
       }
 
-      const libraryCount = libraryFiles.length;
-      grandTotal += libraryCount * targets.length;
-      keywordSummaries.push({ keyword, libraryCount, metadata });
-    }
+      for (const keyword of keywords) {
+        const srcDir = path.join(blogDir, keyword);
+        const libraryFiles = listLibraryFiles(srcDir);
+        const metadata = readMetadata(srcDir);
 
-    blogs.push({ blogName, keywords: keywordSummaries });
+        for (const target of targets) {
+          writeKeywordOutput({ srcDir, target, blogName, keyword, libraryFiles, metadata });
+        }
+
+        const libraryCount = libraryFiles.length;
+        grandTotal += libraryCount * targets.length;
+        blogSummary.keywords.push({ keyword, libraryCount, metadata });
+      }
+    }
   }
 
   return { grandTotal, blogs };

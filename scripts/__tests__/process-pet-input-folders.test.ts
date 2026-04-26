@@ -133,4 +133,47 @@ describe('processPetInputFolders', () => {
       }),
     ).toThrow('unmapped blog: 없는블로그');
   });
+
+  it('여러 입력 폴더를 받은 순서대로 합쳐 같은 블로그 키워드를 이어붙임', () => {
+    const tempDir = createTempDir();
+    tempDirs.push(tempDir);
+
+    const inputDir25 = path.join(tempDir, '260425_알리바바_한줄');
+    const inputDir26 = path.join(tempDir, '260426_알리바바_한줄');
+    const outputDir = path.join(tempDir, 'alibaba-output');
+
+    writeFile(path.join(inputDir25, '1', '글로벌소싱순위', '라이브러리제외.JPG'), 'jpg');
+    writeFile(path.join(inputDir25, '1', '중국구매대행추천', '라이브러리제외.JPG'), 'jpg');
+    writeFile(path.join(inputDir25, '1', '중국수입절차', '라이브러리제외.JPG'), 'jpg');
+    writeFile(path.join(inputDir26, '1', '도매거래절차', '라이브러리제외.JPG'), 'jpg');
+    writeFile(path.join(inputDir26, '1', '도매거래하는법', '라이브러리제외.JPG'), 'jpg');
+    writeFile(path.join(inputDir26, '1', '도매구매대행', '라이브러리제외.JPG'), 'jpg');
+
+    const result = processPetInputFolders({
+      inputDirs: [inputDir25, inputDir26],
+      targets: [
+        {
+          label: '알리바바',
+          outputDir,
+          resolveBlogDirectoryName: () => 'weed3122',
+          libraryDirName: '라이브러리제외이미지',
+          libraryFilePrefix: '라이브러리제외이미지',
+        },
+      ],
+    });
+
+    expect(result.grandTotal).toBe(6);
+    expect(result.blogs).toHaveLength(1);
+    expect(result.blogs[0]?.keywords.map(({ keyword }) => keyword)).toEqual([
+      '글로벌소싱순위',
+      '중국구매대행추천',
+      '중국수입절차',
+      '도매거래절차',
+      '도매거래하는법',
+      '도매구매대행',
+    ]);
+    expect(
+      fs.existsSync(path.join(outputDir, 'weed3122', '도매구매대행', '라이브러리제외이미지', '라이브러리제외이미지_1.JPG')),
+    ).toBe(true);
+  });
 });
