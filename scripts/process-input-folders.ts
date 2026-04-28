@@ -1,11 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { isImageFile } from './lib/image-filter';
+import { resolveExistingDirectory } from './lib/input-paths';
 import { type Metadata, parseInputMetadata, extractBlogId, extractKeyword } from './lib/metadata-parser';
 import { listSubdirectories, listFiles } from './lib/local-fs';
 
 const BASE = process.cwd();
-const INPUT_DIR = path.join(BASE, '_samples', 'input', '안과_입력');
+const INPUT_DIR = resolveExistingDirectory([
+  path.join(BASE, '_samples', 'input', '안과'),
+  path.join(BASE, '_samples', 'input', '안과_입력'),
+]);
 const OUTPUT_DIR = path.join(BASE, '_samples', 'output', '안과_출력');
 
 const createEmptyMetadata = (): Metadata => ({ mapQueries: [], phone: '', url: '', lib_url: [] });
