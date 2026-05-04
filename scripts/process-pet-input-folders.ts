@@ -6,6 +6,7 @@ const BASE = process.cwd();
 const INPUT_DIR = resolveExistingDirectory([
   path.join(BASE, '_samples', 'input', '애견입력'),
   path.join(BASE, '_samples', 'input', '애견_입력'),
+  path.join(BASE, '_samples', 'input', '도그마루'),
   path.join(BASE, '_samples', 'input'),
 ]);
 const OUTPUT_DIR = path.join(BASE, '_samples', 'output', '애견_출력');
