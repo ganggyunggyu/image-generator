@@ -21,7 +21,7 @@ const shuffleInPlace = <T>(arr: T[]): void => {
 };
 
 const categorizeEyeKeyword = (keyword: string): string => {
-  const k = keyword.replace(/\s+/g, '');
+  const k = keyword.normalize('NFC').replace(/\s+/g, '');
 
   if (k.includes('스마일')) return '스마일라식정보';
   if (k.includes('렌즈') || k.includes('삽입')) return '렌즈삽입술정보';
@@ -57,7 +57,7 @@ const PET_CAT_TOKENS = [
 ] as const;
 
 const categorizePetKeyword = (keyword: string): string => {
-  const k = keyword.replace(/\s+/g, '');
+  const k = keyword.normalize('NFC').replace(/\s+/g, '');
   const isInfo = PET_INFO_TOKENS.some((t) => k.includes(t));
   const isCat = PET_CAT_TOKENS.some((t) => k.includes(t));
 
@@ -67,7 +67,10 @@ const categorizePetKeyword = (keyword: string): string => {
 
 const resolveDefaultOutputDir = (type: InputType): string => {
   const base = process.cwd();
-  if (type === 'pet') return path.join(base, '_samples', 'output', '애견_출력');
+  if (type === 'pet') {
+    if (process.env.PET_OUTPUT_DIR) return path.resolve(process.env.PET_OUTPUT_DIR);
+    return path.join(base, '_samples', 'output', '애견_출력');
+  }
   return path.join(base, '_samples', 'output', '안과_출력');
 };
 

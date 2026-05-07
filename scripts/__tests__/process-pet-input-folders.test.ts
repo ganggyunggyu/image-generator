@@ -176,4 +176,68 @@ describe('processPetInputFolders', () => {
       fs.existsSync(path.join(outputDir, 'weed3122', '도매구매대행', '라이브러리제외이미지', '라이브러리제외이미지_1.JPG')),
     ).toBe(true);
   });
+
+  it('출력 결과가 이미 있으면 재처리하지 않고 기존 파일을 유지함', () => {
+    const tempDir = createTempDir();
+    tempDirs.push(tempDir);
+
+    const inputDir = path.join(tempDir, 'input');
+    const outputDir = path.join(tempDir, 'pet-output');
+    const existingImagePath = path.join(outputDir, '룰루랄라', '골든두들', '라이브러리제외', '라이브러리제외_1.jpg');
+    const existingMetadataPath = path.join(outputDir, '룰루랄라', '골든두들', 'metadata.json');
+
+    writeFile(path.join(inputDir, '룰루랄라', '골든두들', '라이브러리제외_1.jpg'), 'new-image');
+    writeFile(existingImagePath, 'existing-image');
+    writeFile(existingMetadataPath, JSON.stringify({ mapQueries: ['기존'], phone: '010', url: 'https://existing.test/' }));
+
+    const result = processPetInputFolders({
+      inputDir,
+      skipExistingOutputs: true,
+      targets: [
+        {
+          label: '애견',
+          outputDir,
+          resolveBlogDirectoryName: ({ blogName }) => blogName,
+          libraryDirName: '라이브러리제외',
+          libraryFilePrefix: '라이브러리제외',
+        },
+      ],
+    });
+
+    expect(result.grandTotal).toBe(0);
+    expect(result.blogs[0]?.keywords[0]?.writtenTargets).toBe(0);
+    expect(result.blogs[0]?.keywords[0]?.skippedTargets).toBe(1);
+    expect(fs.readFileSync(existingImagePath, 'utf-8')).toBe('existing-image');
+    expect(fs.readFileSync(existingMetadataPath, 'utf-8')).toContain('existing.test');
+  });
+
+  it('자모 분리된 라이브러리 파일명도 이미지로 처리함', () => {
+    const tempDir = createTempDir();
+    tempDirs.push(tempDir);
+
+    const inputDir = path.join(tempDir, 'input');
+    const outputDir = path.join(tempDir, 'pet-output');
+    const decomposedLibraryName = '1_라이브러리제외.jpg.jpg';
+
+    writeFile(path.join(inputDir, '룰루랄라', '골든두들', decomposedLibraryName), 'jpg');
+
+    const result = processPetInputFolders({
+      inputDir,
+      targets: [
+        {
+          label: '애견',
+          outputDir,
+          resolveBlogDirectoryName: ({ blogName }) => blogName,
+          libraryDirName: '라이브러리제외',
+          libraryFilePrefix: '라이브러리제외',
+        },
+      ],
+    });
+
+    expect(result.grandTotal).toBe(1);
+    expect(result.blogs[0]?.keywords[0]?.libraryCount).toBe(1);
+    expect(fs.existsSync(path.join(outputDir, '룰루랄라', '골든두들', '라이브러리제외', '라이브러리제외_1.jpg'))).toBe(
+      true,
+    );
+  });
 });

@@ -17,6 +17,8 @@
     "scripts/setup-git-hooks.ts",
     "scripts/verify-task.ts",
     "scripts/process-pet-input-folders.ts",
+    "scripts/process-pet-input-folders.local.ts",
+    "scripts/process-pet-input-folders.nas.ts",
     "scripts/process-alibaba-input-folders.ts",
     "scripts/process-input-folders.ts",
     "scripts/generate-keyword-category-txt.ts",

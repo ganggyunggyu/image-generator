@@ -20,12 +20,15 @@ interface ProcessPetInputFoldersOptions {
   inputDir?: string;
   inputDirs?: string[];
   targets: PetOutputTarget[];
+  skipExistingOutputs?: boolean;
 }
 
 interface ProcessedKeywordSummary {
   keyword: string;
   libraryCount: number;
   metadata: Metadata;
+  writtenTargets: number;
+  skippedTargets: number;
 }
 
 interface ProcessedBlogSummary {
@@ -40,9 +43,12 @@ export interface ProcessPetInputFoldersResult {
 
 const createEmptyMetadata = (): Metadata => ({ mapQueries: [], phone: '', url: '', lib_url: [] });
 
+const includesLibraryToken = (file: string): boolean =>
+  file.normalize('NFC').includes('라이브러리');
+
 const listLibraryFiles = (srcDir: string): string[] =>
   listFiles(srcDir)
-    .filter((file) => file.includes('라이브러리') && isImageFile(file))
+    .filter((file) => includesLibraryToken(file) && isImageFile(file))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
 const readMetadata = (srcDir: string): Metadata => {
@@ -97,10 +103,36 @@ const writeKeywordOutput = ({
   fs.writeFileSync(path.join(outDir, 'metadata.json'), JSON.stringify(metadata, null, 2) + '\n');
 };
 
+const hasExistingKeywordOutput = ({
+  target,
+  blogName,
+  keyword,
+}: {
+  target: PetOutputTarget;
+  blogName: string;
+  keyword: string;
+}): boolean => {
+  const blogDirName = target.resolveBlogDirectoryName({ blogName }).trim();
+  if (!blogDirName) {
+    throw new Error(`[${target.label}] empty output blog directory for "${blogName}"`);
+  }
+
+  const outDir = path.join(target.outputDir, blogDirName, keyword);
+  const metadataPath = path.join(outDir, 'metadata.json');
+  const libraryDir = path.join(outDir, target.libraryDirName);
+
+  if (!fs.existsSync(outDir)) return false;
+  if (!fs.existsSync(libraryDir) || !fs.statSync(libraryDir).isDirectory()) return false;
+
+  const hasImageOutput = listFiles(libraryDir).some((file) => isImageFile(file));
+  return fs.existsSync(metadataPath) && hasImageOutput;
+};
+
 export const processPetInputFolders = ({
   inputDir,
   inputDirs,
   targets,
+  skipExistingOutputs = false,
 }: ProcessPetInputFoldersOptions): ProcessPetInputFoldersResult => {
   const resolvedInputDirs = resolveInputDirs(inputDir, inputDirs);
   const blogs: ProcessedBlogSummary[] = [];
@@ -108,7 +140,9 @@ export const processPetInputFolders = ({
   let grandTotal = 0;
 
   for (const target of targets) {
-    fs.rmSync(target.outputDir, { recursive: true, force: true });
+    if (!skipExistingOutputs) {
+      fs.rmSync(target.outputDir, { recursive: true, force: true });
+    }
     fs.mkdirSync(target.outputDir, { recursive: true });
   }
 
@@ -130,14 +164,22 @@ export const processPetInputFolders = ({
         const srcDir = path.join(blogDir, keyword);
         const libraryFiles = listLibraryFiles(srcDir);
         const metadata = readMetadata(srcDir);
+        let writtenTargets = 0;
+        let skippedTargets = 0;
 
         for (const target of targets) {
+          if (skipExistingOutputs && hasExistingKeywordOutput({ target, blogName, keyword })) {
+            skippedTargets += 1;
+            continue;
+          }
+
           writeKeywordOutput({ srcDir, target, blogName, keyword, libraryFiles, metadata });
+          writtenTargets += 1;
         }
 
         const libraryCount = libraryFiles.length;
-        grandTotal += libraryCount * targets.length;
-        blogSummary.keywords.push({ keyword, libraryCount, metadata });
+        grandTotal += libraryCount * writtenTargets;
+        blogSummary.keywords.push({ keyword, libraryCount, metadata, writtenTargets, skippedTargets });
       }
     }
   }

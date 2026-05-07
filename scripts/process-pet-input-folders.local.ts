@@ -15,7 +15,7 @@ const result = processPetInputFolders({
   inputDir: INPUT_DIR,
   targets: [
     {
-      label: '애견',
+      label: '애견 로컬',
       outputDir: OUTPUT_DIR,
       resolveBlogDirectoryName: ({ blogName }) => blogName,
       libraryDirName: '라이브러리제외',

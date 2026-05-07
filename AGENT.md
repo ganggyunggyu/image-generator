@@ -42,7 +42,10 @@
 ## 프로젝트 스킬
 - 입력 폴더 처리와 S3 업로드 작업의 source of truth 는 `.claude/commands/image-process.md`.
 - 애견/안과/알리바바 입력 처리 요청을 받으면 먼저 `.claude/commands/image-process.md` 를 읽고 그 순서를 따르기.
-- 애견 입력 작업의 기본 순서는 `pnpm -s process:pet` -> `pnpm -s category:pet` -> `pnpm -s upload:blog -- "./_samples/output/애견_출력"` 임.
+- 애견 로컬 입력 작업의 기본 순서는 `pnpm -s process:pet:local` -> `pnpm -s category:pet:local` -> `pnpm -s upload:blog -- "./_samples/output/애견_출력"` 임.
+- 애견 NAS 입력 작업의 기본 순서는 `pnpm -s process:pet:nas` -> `pnpm -s category:pet:nas` -> `pnpm -s upload:pet:nas` 임.
+- 기존 호환용 `pnpm -s process:pet` 와 `pnpm -s category:pet` 는 로컬 프로세서를 가리킴.
+- 애견 출력 검토에서 매핑/이미지/metadata/키워드 txt 이상 없으면 사용자 재확인 없이 바로 업로드함.
 - 알리바바 입력 작업의 기본 순서는 `pnpm -s process:alibaba` -> `pnpm -s upload:blog -- "./_samples/output/알리바바_출력"` 임.
 - `process:alibaba` 는 출력 루트에 `키워드_계정매칭.txt` 를 자동 생성해야 함.
 - `process:pet` 와 `category:pet` 는 병렬 실행하지 말고 순차 실행하기.
