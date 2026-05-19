@@ -59,10 +59,12 @@ const CATEGORY_MODE_MAX_IMAGES = 5;
 const ALIBABA_BODY_COUNT = 5;
 
 const ALIBABA_BODY_BLOG_GROUPS: Record<string, string> = {
-  weed3122: '알리바바1~3', mad1651: '알리바바1~3', chemical12568: '알리바바1~3',
-  qwzx16: '알리바바1~3', '1': '알리바바1~3', '2': '알리바바1~3', '3': '알리바바1~3',
-  copy11525: '알리바바4~5', individual14144: '알리바바4~5',
-  '4': '알리바바4~5', '5': '알리바바4~5',
+  crvfwy7062: '알리바바4~5', wzlphw5449: '알리바바4~5', heavymouse448: '알리바바4~5',
+  ui3nnkai: '알리바바4~5', rqr1io45: '알리바바4~5', individual14144: '알리바바4~5',
+  '1': '알리바바4~5', '2': '알리바바4~5', '3': '알리바바4~5',
+  '4': '알리바바4~5', '5': '알리바바4~5', '6': '알리바바4~5',
+  weed3122: '알리바바4~5', mad1651: '알리바바4~5', chemical12568: '알리바바4~5',
+  qwzx16: '알리바바4~5', copy11525: '알리바바4~5',
 };
 
 const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
