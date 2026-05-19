@@ -58,14 +58,15 @@ const NO_DISTORT_FOLDERS: S3FolderName[] = ['라이브러리제외', '라이브�
 const CATEGORY_MODE_MAX_IMAGES = 5;
 const ALIBABA_BODY_COUNT = 5;
 
-const ALIBABA_BODY_BLOG_GROUPS: Record<string, string> = {
-  crvfwy7062: '알리바바4~5', wzlphw5449: '알리바바4~5', heavymouse448: '알리바바4~5',
-  ui3nnkai: '알리바바4~5', rqr1io45: '알리바바4~5', individual14144: '알리바바4~5',
-  '1': '알리바바4~5', '2': '알리바바4~5', '3': '알리바바4~5',
-  '4': '알리바바4~5', '5': '알리바바4~5', '6': '알리바바4~5',
-  weed3122: '알리바바4~5', mad1651: '알리바바4~5', chemical12568: '알리바바4~5',
-  qwzx16: '알리바바4~5', copy11525: '알리바바4~5',
-};
+const ALIBABA_BODY_FOLDERS = ['알리바바1~3', '알리바바4~5'];
+
+const ALIBABA_BODY_BLOG_IDS = new Set([
+  'crvfwy7062', 'wzlphw5449', 'heavymouse448',
+  'ui3nnkai', 'rqr1io45', 'individual14144',
+  '1', '2', '3', '4', '5', '6',
+  'weed3122', 'mad1651', 'chemical12568',
+  'qwzx16', 'copy11525',
+]);
 
 const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
 const stripSuffix = (str: string): string => str.replace(/_\d+$/, '');
@@ -94,6 +95,38 @@ const findMatchingFolder = (keyword: string, folders: string[]): string | null =
 const emptyImages: ProductImages = {
   body: [], individual: [], slide: [], collage: [], excludeLibrary: [], excludeLibraryLink: [],
 };
+
+async function loadAlibabaBody(): Promise<{ images: string[]; failed: number }> {
+  const allItems = (
+    await Promise.all(
+      ALIBABA_BODY_FOLDERS.map((name) => listS3Images(`category-images/${name}/본문`, 1000))
+    )
+  ).flat();
+
+  if (allItems.length === 0) return { images: [], failed: 0 };
+
+  const shuffled = [...allItems].sort(() => Math.random() - 0.5).slice(0, ALIBABA_BODY_COUNT);
+  const limit = pLimit(5);
+  let failed = 0;
+  const results = await Promise.all(
+    shuffled.map((item) =>
+      limit(async () => {
+        try {
+          const res = await fetch(item.url);
+          if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+          const buffer = Buffer.from(await res.arrayBuffer());
+          const processed = await applyLightDistortion(buffer);
+          return `data:image/webp;base64,${processed.toString('base64')}`;
+        } catch {
+          failed++;
+          return null;
+        }
+      })
+    )
+  );
+
+  return { images: results.filter((r): r is string => Boolean(r)), failed };
+}
 
 async function loadImages(folder: string, options: { maxTotalCount?: number } = {}) {
   const { maxTotalCount } = options;
@@ -181,12 +214,8 @@ export async function GET(request: NextRequest) {
     const blogName = searchParams.get('blogName') || '';
     const blogId = searchParams.get('blogId') || '';
     const category = searchParams.get('category') || '';
-    const manuscriptType = searchParams.get('manuscriptType') || '';
-
-    // 알리바바 본문: blogId 그룹에 맞는 category-images에서 body 로드
-    const alibabaBodyGroup = manuscriptType === 'alibaba' && blogId
-      ? ALIBABA_BODY_BLOG_GROUPS[blogId.trim()] ?? null
-      : null;
+    // 알리바바 본문: blogId 매칭되면 알리바바1~3 + 알리바바4~5 풀에서 머지 후 5장 샘플 (manuscriptType 무관)
+    const isAlibabaBody = blogId ? ALIBABA_BODY_BLOG_IDS.has(blogId.trim()) : false;
 
     // category 모드: 고정 이미지 리턴 (소진 안 됨)
     if (category) {
@@ -222,32 +251,11 @@ export async function GET(request: NextRequest) {
     const matchedFolder = keyword ? findMatchingFolder(keyword, productFolders) : null;
 
     if (!matchedFolder) {
-      if (alibabaBodyGroup) {
-        const bodyFolder = `category-images/${alibabaBodyGroup}/본문`;
-        const bodyItems = await listS3Images(bodyFolder, 1000);
+      if (isAlibabaBody) {
+        const { images: bodyImages, failed } = await loadAlibabaBody();
 
-        if (bodyItems.length > 0) {
-          const shuffled = [...bodyItems].sort(() => Math.random() - 0.5).slice(0, ALIBABA_BODY_COUNT);
-          const limit = pLimit(5);
-          let failed = 0;
-          const bodyResults = await Promise.all(
-            shuffled.map((item) =>
-              limit(async () => {
-                try {
-                  const res = await fetch(item.url);
-                  if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
-                  const buffer = Buffer.from(await res.arrayBuffer());
-                  const processed = await applyLightDistortion(buffer);
-                  return `data:image/webp;base64,${processed.toString('base64')}`;
-                } catch {
-                  failed++;
-                  return null;
-                }
-              })
-            )
-          );
-          const bodyImages = bodyResults.filter((r): r is string => Boolean(r));
-          console.log(`🛒 알리바바 본문 단독: ${blogId} → ${alibabaBodyGroup} (${bodyImages.length}장)`);
+        if (bodyImages.length > 0) {
+          console.log(`🛒 알리바바 본문 단독: ${blogId} → 알리바바1~3+4~5 머지 (${bodyImages.length}장)`);
 
           return NextResponse.json(
             {
@@ -279,33 +287,14 @@ export async function GET(request: NextRequest) {
     let totalCount = loadedCount;
     let totalFailed = loadedFailed;
 
-    if (alibabaBodyGroup) {
-      const bodyFolder = `category-images/${alibabaBodyGroup}/본문`;
-      const bodyItems = await listS3Images(bodyFolder, 1000);
+    if (isAlibabaBody) {
+      const { images: bodyImages, failed: bodyFailed } = await loadAlibabaBody();
 
-      if (bodyItems.length > 0) {
-        const shuffled = [...bodyItems].sort(() => Math.random() - 0.5).slice(0, ALIBABA_BODY_COUNT);
-        const limit = pLimit(5);
-        const bodyResults = await Promise.all(
-          shuffled.map((item) =>
-            limit(async () => {
-              try {
-                const res = await fetch(item.url);
-                if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
-                const buffer = Buffer.from(await res.arrayBuffer());
-                const processed = await applyLightDistortion(buffer);
-                return `data:image/webp;base64,${processed.toString('base64')}`;
-              } catch {
-                totalFailed++;
-                return null;
-              }
-            })
-          )
-        );
-        const bodyImages = bodyResults.filter((r): r is string => Boolean(r));
+      if (bodyImages.length > 0) {
         totalCount = totalCount - images.body.length + bodyImages.length;
+        totalFailed += bodyFailed;
         images.body = bodyImages;
-        console.log(`🛒 알리바바 본문 대체: ${blogId} → ${alibabaBodyGroup} (${bodyImages.length}장)`);
+        console.log(`🛒 알리바바 본문 대체: ${blogId} → 알리바바1~3+4~5 머지 (${bodyImages.length}장)`);
       }
     }
 
