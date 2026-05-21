@@ -163,6 +163,56 @@ describe('GET /api/image/product-images', () => {
     expect(body.total).toBe(6);
   });
 
+  it('알리바바 계정 키워드 폴더가 없어도 다른 알리바바 소스의 라이브러리제외이미지를 반환함', async () => {
+    listS3Folders.mockImplementation(async (folder: string) => {
+      if (folder === 'product-images/weed3122') return [];
+      if (folder === 'product-images/wzlphw5449') return ['TAOBAO'];
+
+      return [];
+    });
+    listS3Images.mockImplementation(async (folder: string) => {
+      if (folder.startsWith('category-images/') && folder.endsWith('/본문')) {
+        return Array.from({ length: 5 }, (_, index) => ({
+          url: `https://example.com/body-${index + 1}.webp`,
+          key: `${folder}/image_${index + 1}.webp`,
+        }));
+      }
+
+      if (folder === 'product-images/wzlphw5449/TAOBAO/라이브러리제외이미지') {
+        return [{ url: 'https://example.com/taobao-library.webp', key: `${folder}/라이브러리제외이미지_1.webp` }];
+      }
+
+      return [];
+    });
+    readS3TextFile.mockImplementation(async (key: string) => {
+      if (key === 'product-images/wzlphw5449/TAOBAO/metadata.json') {
+        return JSON.stringify({ mapQueries: ['타오바오'] });
+      }
+
+      throw new Error('metadata not found');
+    });
+
+    const request = new Request(
+      'http://localhost/api/image/product-images?keyword=TAOBAO&blogId=weed3122&manuscriptType=alibaba'
+    ) as unknown as NextRequest;
+
+    const response = await GET(request);
+    const body = await response.json() as {
+      images: { body: string[]; excludeLibrary: string[] };
+      metadata: { mapQueries?: string[] };
+      total: number;
+      folder: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.folder).toBe('TAOBAO');
+    expect(body.images.body).toHaveLength(5);
+    expect(body.images.excludeLibrary).toEqual(['https://example.com/taobao-library.webp']);
+    expect(body.metadata.mapQueries).toEqual(['타오바오']);
+    expect(body.total).toBe(6);
+    expect(renameS3Folder).not.toHaveBeenCalled();
+  });
+
   it('매칭 폴더가 없으면 빈 응답을 반환함', async () => {
     listS3Folders.mockResolvedValue(['다른폴더']);
 

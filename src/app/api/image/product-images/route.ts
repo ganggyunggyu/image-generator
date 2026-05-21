@@ -65,6 +65,15 @@ const ALIBABA_BODY_BLOG_IDS = new Set([
   'rqr1io45', 'weed3122', 'individual14144',
 ]);
 
+const ALIBABA_LIBRARY_SOURCE_BLOG_IDS = [
+  'crvfwy7062',
+  'wzlphw5449',
+  'heavymouse448',
+  'rqr1io45',
+  'weed3122',
+  'individual14144',
+];
+
 const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();
 const stripSuffix = (str: string): string => str.replace(/_\d+$/, '');
 
@@ -196,6 +205,63 @@ async function loadImages(folder: string, options: { maxTotalCount?: number } = 
   return { images, metadata, totalCount, totalFailed };
 }
 
+const loadAlibabaLibraryImages = async (folder: string): Promise<{ images: string[]; metadata: Metadata }> => {
+  const libraryItems = (
+    await Promise.all([
+      listS3Images(`${folder}/라이브러리제외이미지`, 1000),
+      listS3Images(`${folder}/라이브러리제외`, 1000),
+    ])
+  )
+    .flat()
+    .sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+
+  let metadata: Metadata = {};
+  try {
+    const metaJson = await readS3TextFile(`${folder}/metadata.json`);
+    metadata = JSON.parse(metaJson);
+  } catch {
+    console.log('ℹ️ 알리바바 라이브러리 fallback metadata.json 없음');
+  }
+
+  return {
+    images: libraryItems.map(({ url }) => url),
+    metadata,
+  };
+};
+
+const loadAlibabaLibraryFallback = async (
+  keyword: string,
+  currentBlogId: string,
+): Promise<{ images: string[]; metadata: Metadata; folder: string }> => {
+  if (!keyword.trim()) return { images: [], metadata: {}, folder: '' };
+
+  const sourceBlogIds = [
+    currentBlogId,
+    ...ALIBABA_LIBRARY_SOURCE_BLOG_IDS.filter((sourceBlogId) => sourceBlogId !== currentBlogId),
+  ];
+
+  for (const sourceBlogId of sourceBlogIds) {
+    const sourceBasePath = `product-images/${sourceBlogId}`;
+    const sourceFolders = await listS3Folders(sourceBasePath);
+    const sourceMatchedFolder = findMatchingFolder(keyword, sourceFolders);
+
+    if (!sourceMatchedFolder) continue;
+
+    const sourceFolder = `${sourceBasePath}/${sourceMatchedFolder}`;
+    const fallback = await loadAlibabaLibraryImages(sourceFolder);
+
+    if (fallback.images.length > 0) {
+      console.log(`🛒 알리바바 라이브러리 fallback: ${currentBlogId}/${keyword} ← ${sourceBlogId}/${sourceMatchedFolder} (${fallback.images.length}장)`);
+      return {
+        ...fallback,
+        folder: sourceMatchedFolder,
+      };
+    }
+  }
+
+  return { images: [], metadata: {}, folder: '' };
+};
+
 export async function GET(request: NextRequest) {
   try {
     if (!isS3Configured()) {
@@ -249,17 +315,24 @@ export async function GET(request: NextRequest) {
 
     if (!matchedFolder) {
       if (isAlibabaBody) {
-        const { images: bodyImages, failed } = await loadAlibabaBody();
+        const [
+          { images: bodyImages, failed },
+          libraryFallback,
+        ] = await Promise.all([
+          loadAlibabaBody(),
+          loadAlibabaLibraryFallback(keyword, blogId.trim()),
+        ]);
 
         if (bodyImages.length > 0) {
           console.log(`🛒 알리바바 본문 단독: ${blogId} → 알리바바1~3+4~5 머지 (${bodyImages.length}장)`);
+          const images = { ...emptyImages, body: bodyImages, excludeLibrary: libraryFallback.images };
 
           return NextResponse.json(
             {
-              images: { ...emptyImages, body: bodyImages },
-              metadata: {},
-              keyword, blogId, category: '', folder: '',
-              total: bodyImages.length, failed,
+              images,
+              metadata: libraryFallback.metadata,
+              keyword, blogId, category: '', folder: libraryFallback.folder,
+              total: bodyImages.length + libraryFallback.images.length, failed,
             } satisfies ResponseBody,
             { headers: corsHeaders }
           );
@@ -292,6 +365,15 @@ export async function GET(request: NextRequest) {
         totalFailed += bodyFailed;
         images.body = bodyImages;
         console.log(`🛒 알리바바 본문 대체: ${blogId} → 알리바바1~3+4~5 머지 (${bodyImages.length}장)`);
+      }
+
+      if (images.excludeLibrary.length === 0) {
+        const libraryFallback = await loadAlibabaLibraryFallback(keyword, blogId.trim());
+
+        if (libraryFallback.images.length > 0) {
+          images.excludeLibrary = libraryFallback.images;
+          totalCount += libraryFallback.images.length;
+        }
       }
     }
 
