@@ -62,10 +62,7 @@ const ALIBABA_BODY_FOLDERS = ['알리바바1~3', '알리바바4~5'];
 
 const ALIBABA_BODY_BLOG_IDS = new Set([
   'crvfwy7062', 'wzlphw5449', 'heavymouse448',
-  'ui3nnkai', 'rqr1io45', 'individual14144',
-  '1', '2', '3', '4', '5', '6',
-  'weed3122', 'mad1651', 'chemical12568',
-  'qwzx16', 'copy11525',
+  'rqr1io45', 'weed3122', 'individual14144',
 ]);
 
 const normalize = (str: string): string => str.normalize('NFC').replace(/\s+/g, '').toLowerCase().trim();

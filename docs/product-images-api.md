@@ -21,10 +21,8 @@ GET /api/image/product-images
 
 `manuscriptType=alibaba` 이고 `blogId` 가 있을 때는 `images.body` 를 상품 폴더의 `본문/` 대신 로컬 `알리바바_본문` 풀에서 채운다.
 
-- `weed3122`, `mad1651`, `chemical12568`, `1`, `2`, `3`, `알리바바1`, `알리바바2`, `알리바바3`, `qwzx16`
-  → `_samples/알리바바_본문/알리바바1~3`
-- `copy11525`, `individual14144`, `4`, `5`, `알리바바4`, `알리바바5`
-  → `_samples/알리바바_본문/알리바바4~5`
+- `crvfwy7062`, `wzlphw5449`, `heavymouse448`, `rqr1io45`, `weed3122`, `individual14144`
+  → `category-images/알리바바1~3/본문` + `category-images/알리바바4~5/본문`에서 5장 샘플
 
 동작 규칙:
 
