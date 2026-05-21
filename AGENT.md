@@ -45,7 +45,13 @@
 - 애견 로컬 입력 작업의 기본 순서는 `pnpm -s process:pet:local` -> `pnpm -s category:pet:local` -> `pnpm -s upload:blog -- "./_samples/output/애견_출력"` 임.
 - 애견 NAS 입력 작업의 기본 순서는 `pnpm -s process:pet:nas` -> `pnpm -s category:pet:nas` -> `pnpm -s upload:pet:nas` 임.
 - 기존 호환용 `pnpm -s process:pet` 와 `pnpm -s category:pet` 는 로컬 프로세서를 가리킴.
+- 키워드 목록만 보고 업로드/발행으로 넘어가지 말고, 출력 폴더가 실제 생성/갱신됐는지 먼저 확인하기.
+- 애견 NAS 로그가 `skip existing: yes`, `write/skip: 0/1`, `총 0장 처리 완료` 이면 기존 출력 재사용 상태이며, 새 출력 생성 요청이면 `PET_FORCE_REPROCESS=1 pnpm -s process:pet:nas` 를 사용하기.
+- 애견 NAS에서 사용자가 `21일`, `0521`, `5월 21일`처럼 날짜를 지정하면 기본 0507 경로를 쓰지 말고 해당 날짜의 `애견_MMDD`/`애견_MMDD_출력` 경로를 `PET_INPUT_DIR`, `PET_OUTPUT_DIR` 로 명시하기.
+- 날짜 지정 NAS 작업은 `category:pet:nas`, `upload:pet:nas` 같은 하드코딩된 기본 명령 대신 해당 출력 경로를 인자로 직접 넘기기.
 - 애견 출력 검토에서 매핑/이미지/metadata/키워드 txt 이상 없으면 사용자 재확인 없이 바로 업로드함.
+- 애견 NAS 업로드 후에는 `text-gen-hub`로 이동해 같은 날짜 출력 폴더의 `키워드_카테고리.txt` 기준으로 애견 스케줄 발행까지 완료하기.
+- `text-gen-hub` 발행 전 이미지 API에서 각 계정/키워드의 `images.excludeLibrary.length > 0` 를 확인하고, 0이면 발행하지 말고 S3/이미지 소스를 먼저 보강하기.
 - 알리바바 입력 작업의 기본 순서는 `pnpm -s process:alibaba` -> `pnpm -s upload:blog -- "./_samples/output/알리바바_출력"` 임.
 - `process:alibaba` 는 출력 루트에 `키워드_계정매칭.txt` 를 자동 생성해야 함.
 - `process:pet` 와 `category:pet` 는 병렬 실행하지 말고 순차 실행하기.

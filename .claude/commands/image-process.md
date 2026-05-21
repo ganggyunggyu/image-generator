@@ -68,6 +68,18 @@ NAS:  pnpm -s process:pet:nas
 NAS 프로세서는 이미 출력 경로에 해당 블로그/키워드 결과물이 있으면 재처리하지 않고 기존 출력물을 재사용합니다.
 NAS 결과를 강제로 다시 처리해야 할 때만 `PET_FORCE_REPROCESS=1 pnpm -s process:pet:nas` 를 실행합니다.
 
+**중요: 출력 폴더 확인 전 업로드/발행 금지**
+- 키워드 목록이 보인다는 이유만으로 업로드나 발행 단계로 넘어가지 않습니다.
+- 반드시 `PET_OUTPUT_DIR` 또는 기본 출력 경로에 블로그/키워드 출력 폴더가 실제로 생성 또는 갱신됐는지 먼저 확인합니다.
+- 처리 로그가 `skip existing: yes`, `write/skip: 0/1`, `총 0장 처리 완료` 이면 새 출력물을 만든 것이 아니라 기존 출력물을 재사용한 상태입니다.
+- 사용자가 “출력 폴더 만들어”, “새로 처리”, “이번 입력 기준으로 다시 생성” 같은 의도를 보이면 `PET_FORCE_REPROCESS=1 pnpm -s process:pet:nas` 로 강제 재처리합니다.
+- 사용자가 “21일”, “0521”, “5월 21일”처럼 날짜를 말하면 기본 NAS 경로를 쓰지 않습니다. 해당 날짜의 `애견_MMDD` 입력과 `애견_MMDD_출력` 출력을 찾아 `PET_INPUT_DIR`, `PET_OUTPUT_DIR` 로 명시해서 실행합니다.
+- 날짜 지정 NAS 작업 예시: `PET_INPUT_DIR="/Volumes/.../애견_0521" PET_OUTPUT_DIR="/Volumes/.../애견_0521_출력" PET_FORCE_REPROCESS=1 pnpm -s process:pet:nas`
+- 날짜 지정 NAS 카테고리 생성과 업로드도 기본 `category:pet:nas`, `upload:pet:nas` 를 쓰지 말고, 해당 날짜 출력 경로를 인자로 직접 넘깁니다.
+- 출력 폴더와 `라이브러리제외` 이미지, `metadata.json`, `키워드_카테고리.txt` 확인이 끝나기 전에는 S3 업로드나 블로그/카페 발행을 시작하지 않습니다.
+- 애견 NAS 출력과 S3 업로드가 끝나면 `text-gen-hub`로 이동해 같은 날짜 출력 폴더의 `키워드_카테고리.txt`를 기준으로 애견 스케줄 발행까지 완료합니다.
+- `text-gen-hub` 발행 전에는 각 계정/키워드 조합으로 이미지 API를 호출해 `images.excludeLibrary.length > 0` 인지 확인합니다. 라이브러리제외 이미지가 0이면 발행을 시작하지 말고 S3/이미지 소스부터 보강합니다.
+
 **입력 구조 (애견):**
 ```
 애견_입력/
