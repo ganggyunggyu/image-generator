@@ -12,6 +12,7 @@ describe('resolveNaverId', () => {
     expect(resolveNaverId('알리바바 신규2')).toBe('wzlphw5449');
     expect(resolveNaverId('알리바바 신규3')).toBe('heavymouse448');
     expect(resolveNaverId('알리바바 신규5')).toBe('rqr1io45');
+    expect(resolveNaverId('알리바바2')).toBe('mad1651');
     expect(resolveNaverId('알리바바5')).toBe('individual14144');
   });
 
@@ -23,6 +24,7 @@ describe('resolveNaverId', () => {
 
   it('알리바바 숫자 폴더를 실제 blogId로 해석함', () => {
     expect(resolveNaverId('1')).toBe('weed3122');
+    expect(resolveNaverId('2')).toBe('mad1651');
     expect(resolveNaverId('5')).toBe('individual14144');
     expect(resolveNaverId('신규1')).toBe('crvfwy7062');
     expect(resolveNaverId('신규2')).toBe('wzlphw5449');
